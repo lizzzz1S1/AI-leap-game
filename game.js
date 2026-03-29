@@ -2,9 +2,12 @@
 (function(){
 'use strict';
 
-const STATE={quarter:0,selectedActions:[],phase:'start',stats:{},hidden:{},flags:{},actionHistory:[],eventLog:[],gender:'',playerName:'',playerBio:'',showTooltip:null,_eventQueue:[],_eventIndex:0,_currentMajor:null,_branchResult:null,_pendingEnding:null,_thisQuarterActions:[],_initTags:[],_initBio:'',_usedOnceEvents:{}};
-const RANDOM_NAMES=['悟空','悟能','悟净','师傅','玄奘','奶龙','奥特曼','佩奇','克劳德','小扎','小马','老黄'];
-function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+const STATE={quarter:0,selectedActions:[],phase:'start',stats:{},hidden:{},flags:{},actionHistory:[],eventLog:[],avatar:'',playerName:'',playerBio:'',showTooltip:null,_eventQueue:[],_eventIndex:0,_currentMajor:null,_branchResult:null,_pendingEnding:null,_thisQuarterActions:[],_initTags:[],_initBio:'',_usedOnceEvents:{}};
+const AVATARS=['👨','👩','💩','🤖','👽','🐶','🐱','🦊','🐸','🐷','🤡','👻','💀','🎃','🧠','🫠','🥸','🦄','🐔','🐧','🤠','😈','🫡','🥷'];
+const RANDOM_NAMES=['悟空','悟能','悟净','师傅','玄奘','奶龙','奥特曼','佩奇','克劳德','小扎','小马','老黄','山姆偶特慢','达里奥暗色比','杰弗里心疼','伊利亚死次鸡窝','马斯不可','黄人勋','李开不复','吴恩不达','贾扬不清','林纳丝','比尔该死','安德鲁嗯急','马化不腾','张一不鸣','王小串','李彦红了','雷不军','周鸿不祎','刘庆不峰','苏华','赛博牛马','提示词工程师','AI搬砖侠','Prompt Boy','Token燃烧者','梯度下降者','大模型陪跑员','幻觉制造者','AGI等待者'];
+function trueRand(n){if(typeof crypto!=='undefined'&&crypto.getRandomValues){var a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n;}return Math.floor(_mathRand()*n);}
+var _mathRand=Math.random.bind(Math);
+function randInt(a,b){return a+trueRand(b-a+1);}
 
 function initStats(){
   STATE.stats={work_skill:randInt(10,30),ai_skill:randInt(0,30),influence:randInt(5,30),fame:randInt(0,20),money:randInt(0,30),energy:randInt(60,100),mood:randInt(60,100)};
@@ -14,21 +17,21 @@ function initStats(){
 }
 function generateInitTags(s){
   var tags=[];
-  if(s.work_skill>=25)tags.push({label:'💼 天选打工人',desc:'你的打工基因与生俱来'});
-  else if(s.work_skill<=14)tags.push({label:'😵 职场小白',desc:'PPT是什么？能吃吗？'});
-  if(s.ai_skill>=25)tags.push({label:'🤖 AI原住民',desc:'你出生时手边就有ChatGPT'});
-  else if(s.ai_skill<=5)tags.push({label:'🔌 AI绝缘体',desc:'你以为GPT是一种零食'});
-  if(s.energy>=90)tags.push({label:'⚡ 精力怪物',desc:'你能连续开会12小时脸不红心不跳'});
-  else if(s.energy<=68)tags.push({label:'😪 电量焦虑型',desc:'出门前先确认咖啡库存'});
-  if(s.mood>=90)tags.push({label:'🌈 天生乐观派',desc:'被裁员也觉得是Gap Year'});
-  else if(s.mood<=68)tags.push({label:'🌧️ 忧虑体质',desc:'晴天也想带把伞'});
-  if(s.influence>=25)tags.push({label:'🏢 公司红人',desc:'你的名字老板叫得出来'});
-  if(s.fame>=15)tags.push({label:'📢 小圈知名',desc:'至少有五十个陌生人关注你'});
-  if(s.money>=25)tags.push({label:'💰 小有积蓄',desc:'至少裸辞能撑三个月'});
-  else if(s.money<=8)tags.push({label:'🫗 月光战士',desc:'工资到账日就是还款日'});
-  if(s.work_skill>=20&&s.ai_skill>=20)tags.push({label:'⚖️ 双修选手',desc:'两手都抓，至少不空'});
-  if(s.energy>=85&&s.mood>=85)tags.push({label:'✨ 满状态出发',desc:'此刻的你是最好的你'});
-  if(tags.length===0)tags.push({label:'🎯 普通但自信',desc:'没有突出特点就是你最大的特点'});
+  if(s.work_skill>=25)tags.push({label:'💼 天选打工人',desc:'你的打工基因与生俱来',reason:'初始打工力'+s.work_skill+'，高于多数人'});
+  else if(s.work_skill<=14)tags.push({label:'😵 职场小白',desc:'PPT是什么？能吃吗？',reason:'初始打工力仅'+s.work_skill+'，起步艰难'});
+  if(s.ai_skill>=25)tags.push({label:'🤖 AI原住民',desc:'你出生时手边就有ChatGPT',reason:'初始AI力'+s.ai_skill+'，赢在起跑线'});
+  else if(s.ai_skill<=5)tags.push({label:'🔌 AI绝缘体',desc:'你以为GPT是一种零食',reason:'初始AI力仅'+s.ai_skill+'，从零开始'});
+  if(s.energy>=90)tags.push({label:'⚡ 精力怪物',desc:'你能连续开会12小时脸不红心不跳',reason:'初始体力'+s.energy+'，满电出发'});
+  else if(s.energy<=68)tags.push({label:'😪 电量焦虑型',desc:'出门前先确认咖啡库存',reason:'初始体力仅'+s.energy+'，注意休息'});
+  if(s.mood>=90)tags.push({label:'🌈 天生乐观派',desc:'被裁员也觉得是Gap Year',reason:'初始情绪'+s.mood+'，心态炸裂'});
+  else if(s.mood<=68)tags.push({label:'🌧️ 忧虑体质',desc:'晴天也想带把伞',reason:'初始情绪仅'+s.mood+'，小心维护'});
+  if(s.influence>=25)tags.push({label:'🏢 公司红人',desc:'你的名字老板叫得出来',reason:'初始影响力'+s.influence+'，自带光环'});
+  if(s.fame>=15)tags.push({label:'📢 小圈知名',desc:'至少有五十个陌生人关注你',reason:'初始知名度'+s.fame+'，已有粉丝'});
+  if(s.money>=25)tags.push({label:'💰 小有积蓄',desc:'至少裸辞能撑三个月',reason:'初始资源'+s.money+'，底气足'});
+  else if(s.money<=8)tags.push({label:'🫗 月光战士',desc:'工资到账日就是还款日',reason:'初始资源仅'+s.money+'，精打细算'});
+  if(s.work_skill>=20&&s.ai_skill>=20)tags.push({label:'⚖️ 双修选手',desc:'两手都抓，至少不空',reason:'打工力'+s.work_skill+'+AI力'+s.ai_skill+'，双线起步'});
+  if(s.energy>=85&&s.mood>=85)tags.push({label:'✨ 满状态出发',desc:'此刻的你是最好的你',reason:'体力'+s.energy+'+情绪'+s.mood+'，黄金开局'});
+  if(tags.length===0)tags.push({label:'🎯 普通但自信',desc:'没有突出特点就是你最大的特点',reason:'各项指标中规中矩'});
   return tags.slice(0,4);
 }
 
@@ -212,12 +215,12 @@ const MAJOR_EVENTS={
     {label:'转向AI+传统行业',desc:'AI是工具，行业是根基',apply:function(){if(STATE.hidden.survival>=30)return{effects:{money:4,mood:2},text:'医疗、教育、制造对AI的需求才刚开始。不够性感，但足够真实。',directEnding:'cross_cycle'};return{effects:{mood:-5,money:-3},text:'你想转，但除了AI什么行业都不懂。',directEnding:'ai_stuck'};}},
     {label:'回炉学第二技能',desc:'不把鸡蛋放一个篮子',apply:function(){return{effects:{money:-4,work_skill:4},hiddenFx:{survival:8},text:'你开始认真学AI以外的东西。学会了不把自己绑在一条线上。'};}},
   ]},
-  war:{title:'🔥 地缘冲突升级，局势急剧紧张',text:'先是制裁，然后断供，然后某个海峡的新闻占满了所有屏幕。\n\n你的日常、行业、计划——突然都不重要了。',category:'social',minQuarter:4,condition:function(){return !STATE.flags.warstarted&&Math.random()<0.35;},applyPassive:function(){STATE.flags.warstarted=true;STATE.flags.work_nerf=true;},branches:[
+  war:{title:'🔥 地缘冲突升级，局势急剧紧张',text:'先是制裁，然后断供，然后某个海峡的新闻占满了所有屏幕。\n\n你的日常、行业、计划——突然都不重要了。',category:'social',minQuarter:4,condition:function(){return !STATE.flags.warstarted&&trueRand(1000000)/1000000<0.35;},applyPassive:function(){STATE.flags.warstarted=true;STATE.flags.work_nerf=true;},branches:[
     {label:'进入国家体系',desc:'个人命运汇入集体命运',apply:function(s){if(s.energy>=25)return{effects:{energy:-8,mood:-4},flag:'joinedwar',text:'你报了名。',directEnding:'war_hero'};return{effects:{energy:-8,mood:-4},flag:'joinedwar',text:'你报了名，但体力已经透支……',directEnding:'war_drifter'};}},
     {label:'撤到安全区域',desc:'活着就是胜利',apply:function(){return{effects:{money:-8,mood:-6},hiddenFx:{survival:2},text:'你变卖了一些东西，离开了。',directEnding:'war_drifter'};}},
     {label:'转入后方技术支援',desc:'用技能服务更大的事',apply:function(s){if(STATE.hidden.survival>=25||s.ai_skill>=50||s.work_skill>=40)return{effects:{influence:4,money:3},flag:'joinedsupport',text:'你的能力在后方反而更被需要。',directEnding:'war_support'};return{effects:{mood:-5},text:'你想帮忙，但能力太窄了。',directEnding:'war_drifter'};}},
   ]},
-  resource_crisis:{title:'⛽ 全球资源危机',text:'芯片断供、电价暴涨、数据中心限电。\n\nAI最依赖的算力，突然变成了奢侈品。',category:'social',minQuarter:4,condition:function(){return !STATE.flags.resourcecollapse&&Math.random()<0.4;},applyPassive:function(){STATE.flags.resourcecollapse=true;},branches:[
+  resource_crisis:{title:'⛽ 全球资源危机',text:'芯片断供、电价暴涨、数据中心限电。\n\nAI最依赖的算力，突然变成了奢侈品。',category:'social',minQuarter:4,condition:function(){return !STATE.flags.resourcecollapse&&trueRand(1000000)/1000000<0.4;},applyPassive:function(){STATE.flags.resourcecollapse=true;},branches:[
     {label:'缩减欲望，保基本盘',desc:'断舍离',apply:function(){return{effects:{money:-2,mood:1},text:'退掉算力订阅，取消一半SaaS。你发现很多东西你根本不需要。'};}},
     {label:'用储蓄换时间',desc:'烧钱撑过去',apply:function(){return{effects:{money:-8,mood:2},text:'你相信这是暂时的。但如果不是呢？'};}},
     {label:'学习非AI生存技能',desc:'不用电的能力就是武器',apply:function(){return{effects:{mood:-2},hiddenFx:{survival:6},text:'如果AI不可用了，你还能靠什么活？这个问题比AI更难回答。'};}},
@@ -259,11 +262,11 @@ var ENDINGS=[
 var QUARTER_NARRATIONS=['','2026年Q1。AI的发展速度超过了所有人的预期。每家公司都在谈AI转型，但大多数人还在摸索。\n\n你是一名大厂打工人，老板说"每个人都要用起来"，但没人告诉你用来做什么。','2026年Q2。"AI转型"出现在了每周OKR里。有人升职了因为做了个AI demo，有人被优化了因为"岗位可以被AI替代"。\n\n恐惧和机会同时弥漫。','2026年Q3。行业开始分化。有人卷技术深度，有人卷个人品牌，有人卷创业。你隐约感到：选择比努力重要。','2026年Q4。年底了。年终总结里不可避免地要写"AI相关成果"。真的有成果吗？还是只是……一直在跟着跑？','2027年Q1。新的一年。去年的"前沿"已变成"入门"。你感到新压力：不是不努力，而是方向可能从一开始就不对。','2027年Q2。泡沫论和革命论同时存在。有人因AI财务自由，也有人被裁员。\n\n唯一确定的是：不确定性本身，才是唯一的确定。','2027年Q3。你开始问自己非AI的问题：我到底想要什么样的生活？如果明天AI行业消失了，我还能做什么？','2027年Q4。最后一个季度。不管之前做了什么选择，这都是为自己的故事写结尾的时刻。'];
 var $app=document.getElementById('app');
 function render(){STATE.showTooltip=null;({start:renderStart,profile:renderProfile,intro:renderIntro,action:renderAction,event_show:renderEventShow,event_choice:renderEventChoice,major_event:renderMajorEvent,branch:renderBranch,summary:renderSummary,ending:renderEnding})[STATE.phase]();}
-function getAvatar(){return STATE.gender==='female'?'👩':'👨';}
+function getAvatar(){return STATE.avatar||'👨';}
 function renderTooltipHTML(){if(!STATE.showTooltip)return'';var t=STATE.showTooltip;return'<div class="tooltip-overlay" onclick="G.closeTooltip()"><div class="tooltip-box" onclick="event.stopPropagation()"><div class="tip-icon">'+t.icon+'</div><div class="tip-label">'+t.label+'</div><div class="tip-text">'+t.tip+'</div><button class="close-tip" onclick="G.closeTooltip()">知道了</button></div></div>';}
 function renderStart(){$app.innerHTML='<div class="start-screen"><h1>AI大跃进<br>生存模拟器</h1><p class="subtitle">2026-2027，AI大跃进时代。<br>你是一名大厂打工人。<br>8个季度，每季度最多3次行动。<br>你以为自己在规划职业，<br>最后发现你在穿越一个时代。</p><button class="start-btn" onclick="G.startGame()">开始模拟</button><div class="ship-container"><div class="ship-flag">🚩</div><div class="ship-sail">    /|\\\n   / | \\\n  /  |  \\\n /   |   \\</div><div class="ship-body">  __|___|__\n /         \\\n/___________\\</div><div class="ship-wave">~~ ≈ ~~ ≈ ~~ ≈ ~~ ≈ ~~\n  ≈ ~~ ≈ ~~ ≈ ~~ ≈ ~~</div></div></div>';}
-function renderProfile(){var mSel=STATE.gender==='male'?' selected':'',fSel=STATE.gender==='female'?' selected':'',canGo=STATE.gender&&STATE.playerName.trim();var tagHtml='';if(STATE._initTags.length>0){tagHtml='<div style="margin-top:16px;padding:12px;background:#FFF5F7;border-radius:12px;border:1px solid #FFE0E6"><div style="font-size:13px;color:#FF2442;font-weight:600;margin-bottom:8px">🏷️ 你的起始天赋</div>';for(var i=0;i<STATE._initTags.length;i++){var t=STATE._initTags[i];tagHtml+='<div style="margin-bottom:4px"><span style="font-size:14px;font-weight:600">'+t.label+'</span> <span style="font-size:12px;color:#888">'+t.desc+'</span></div>';}tagHtml+='</div>';}$app.innerHTML='<div class="profile-screen"><h2>创建你的角色</h2><div class="gender-select"><button class="gender-btn'+fSel+'" onclick="G.setGender(\'female\')">👩</button><button class="gender-btn'+mSel+'" onclick="G.setGender(\'male\')">👨</button></div><div class="profile-field"><label>你的名字</label><div class="input-row"><input id="nameInput" type="text" placeholder="输入姓名" maxlength="12" value="'+esc(STATE.playerName)+'" oninput="G.updateName(this.value)"><button class="dice-btn" onclick="G.randomName()">🎲</button></div></div><div class="profile-field"><label>一句话简介（选填）</label><input id="bioInput" type="text" placeholder="例如：大厂搬砖三年的运营" maxlength="30" value="'+esc(STATE.playerBio)+'" oninput="G.updateBio(this.value)"></div>'+tagHtml+'<button class="btn btn-primary '+(canGo?'':'btn-disabled')+'" onclick="G.confirmProfile()" style="margin-top:24px">进入游戏 →</button></div>';}
-function renderTopBar(){var q=STATE.quarter,year=q<=4?'2026':'2027',qLabel='Q'+(((q-1)%4)+1);var rows='';for(var key in STAT_META){if(!STAT_META.hasOwnProperty(key))continue;var meta=STAT_META[key];var val=clamp(STATE.stats[key],0,100);var bc=val<=20?'#ef4444':meta.color;rows+='<div class="stat-row"><span class="stat-icon">'+meta.icon+'</span><span class="stat-label">'+meta.label+'</span><button class="stat-info-btn" onclick="event.stopPropagation();G.showTip(\''+key+'\')">i</button><div class="stat-bar-bg"><div class="stat-bar" style="width:'+val+'%;background:'+bc+'"></div></div><span class="stat-val">'+val+'</span></div>';}return'<div class="top-bar"><div class="user-info-bar"><div class="user-avatar">'+getAvatar()+'</div><div class="user-details"><div class="user-name">'+(esc(STATE.playerName)||'玩家')+'</div><div class="user-bio">'+(esc(STATE._initBio)||esc(STATE.playerBio)||'大厂打工人')+'</div></div><span class="quarter-badge">'+year+' '+qLabel+'</span></div><div class="stats-list">'+rows+'</div><div class="progress-bar"><div class="progress-fill" style="width:'+(q/8*100)+'%"></div></div></div>'+renderTooltipHTML();}
+function renderProfile(){var canGo=STATE.avatar&&STATE.playerName.trim();var avGrid='';for(var ai=0;ai<AVATARS.length;ai++){var av=AVATARS[ai];var sel=STATE.avatar===av?' selected':'';avGrid+='<button class="avatar-btn'+sel+'" onclick="G.setAvatar(\''+av+'\')">'+av+'</button>';}avGrid+='<button class="avatar-btn dice-avatar" onclick="G.randomAvatar()" title="随机头像">🎲</button>';var tagHtml='';if(STATE._initTags.length>0){tagHtml='<div style="margin-top:16px;padding:12px;background:#FFF5F7;border-radius:12px;border:1px solid #FFE0E6"><div style="font-size:13px;color:#FF2442;font-weight:600;margin-bottom:8px">🏷️ 你的起始天赋</div>';for(var i=0;i<STATE._initTags.length;i++){var t=STATE._initTags[i];tagHtml+='<div style="margin-bottom:6px"><div><span style="font-size:14px;font-weight:600">'+t.label+'</span> <span style="font-size:12px;color:#888">'+t.desc+'</span></div><div style="font-size:11px;color:#BB6677;margin-top:1px;padding-left:2px">↳ '+t.reason+'</div></div>';}tagHtml+='</div>';}$app.innerHTML='<div class="profile-screen"><h2>创建你的角色</h2><div class="profile-field"><label>选择头像</label><div class="avatar-grid">'+avGrid+'</div></div><div class="profile-field"><label>你的名字</label><div class="input-row"><input id="nameInput" type="text" placeholder="输入姓名" maxlength="12" value="'+esc(STATE.playerName)+'" oninput="G.updateName(this.value)"><button class="dice-btn" onclick="G.randomName()">🎲</button></div></div><div class="profile-field"><label>一句话简介（选填）</label><input id="bioInput" type="text" placeholder="例如：大厂搬砖三年的运营" maxlength="30" value="'+esc(STATE.playerBio)+'" oninput="G.updateBio(this.value)"></div>'+tagHtml+'<button class="btn btn-primary '+(canGo?'':'btn-disabled')+'" onclick="G.confirmProfile()" style="margin-top:24px">进入游戏 →</button></div>';}
+function renderTopBar(){var q=STATE.quarter,year=q<=4?'2026':'2027',qLabel='Q'+(((q-1)%4)+1);var rows='';for(var key in STAT_META){if(!STAT_META.hasOwnProperty(key))continue;var meta=STAT_META[key];var val=clamp(STATE.stats[key],0,100);var bc=val<=20?'#ef4444':meta.color;rows+='<div class="stat-row"><span class="stat-icon">'+meta.icon+'</span><span class="stat-label">'+meta.label+'</span><button class="stat-info-btn" onclick="event.stopPropagation();G.showTip(\''+key+'\')">i</button><div class="stat-bar-bg"><div class="stat-bar" style="width:'+val+'%;background:'+bc+'"></div></div><span class="stat-val">'+val+'</span></div>';}var tagLine='';if(STATE._initTags.length>0){tagLine='<div class="topbar-tags">';for(var ti=0;ti<STATE._initTags.length;ti++){tagLine+='<span class="topbar-tag">'+STATE._initTags[ti].label+'</span>';}tagLine+='</div>';}return'<div class="top-bar"><div class="user-info-bar"><div class="user-avatar">'+getAvatar()+'</div><div class="user-details"><div class="user-name">'+(esc(STATE.playerName)||'玩家')+'</div><div class="user-bio">'+(esc(STATE._initBio)||esc(STATE.playerBio)||'大厂打工人')+'</div></div><span class="quarter-badge">'+year+' '+qLabel+'</span></div>'+tagLine+'<div class="stats-list">'+rows+'</div><div class="progress-bar"><div class="progress-fill" style="width:'+(q/8*100)+'%"></div></div></div>'+renderTooltipHTML();}
 function renderIntro(){$app.innerHTML=renderTopBar()+'<div class="main-area"><div class="card narration-card"><div class="card-title">📅 第'+STATE.quarter+'季度</div><div class="card-body"><p>'+QUARTER_NARRATIONS[STATE.quarter].replace(/\n/g,'<br>')+'</p></div></div><button class="btn btn-primary" onclick="G.toAction()">选择行动 →</button></div>';}
 function renderAction(){var sel=STATE.selectedActions;var btns='';for(var i=0;i<ACTIONS.length;i++){var a=ACTIONS[i];var isSel=sel.indexOf(a.id)>=0;var pv='';var combined={};for(var k in a.effects){if(a.effects.hasOwnProperty(k))combined[k]=a.effects[k];}if(a.bonus){var bn=a.bonus(STATE.stats);for(var bk in bn){if(bn.hasOwnProperty(bk))combined[bk]=(combined[bk]||0)+bn[bk];}}for(var ck in combined){if(!combined.hasOwnProperty(ck))continue;var m=STAT_META[ck];if(m)pv+=m.icon+(combined[ck]>0?'+':'')+combined[ck]+' ';}if(STATE.flags.ai_skill_nerf&&a.id==='learn_ai')pv+=' ⚠️';if(STATE.flags.work_nerf&&a.id==='work')pv+=' ⚠️';btns+='<button class="'+(isSel?'btn btn-selected':'btn')+'" onclick="G.toggleAction(\''+a.id+'\')"><div class="btn-label">'+a.label+(isSel?' ✓':'')+'</div><div class="btn-desc">'+a.desc+'</div><div class="btn-fx">'+pv+'</div></button>';}var qNar=QUARTER_NARRATIONS[STATE.quarter]||'';var shortNar=qNar.split('\n')[0];var narCard=shortNar?'<div style="background:#FFF5F7;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#666;border-left:3px solid #FF2442"><span style="color:#FF2442;font-weight:600">📅 本季度：</span>'+shortNar+'</div>':'';$app.innerHTML=renderTopBar()+'<div class="main-area" id="actionArea">'+narCard+'<div class="action-header"><div class="action-counter">已选 <span>'+sel.length+'</span> / 3 个行动</div><button class="btn-secondary" onclick="G.backToIntro()">← 返回</button></div><div class="btn-grid">'+btns+'</div><button class="btn btn-primary '+(sel.length>=1?'':'btn-disabled')+'" onclick="G.confirmActions()" style="margin-top:8px">确认行动 →</button></div>';}
 function renderEventShow(){var ev=STATE._eventQueue[STATE._eventIndex];if(!ev){processPostEvents();return;}var fxText='';if(ev.effects){for(var k in ev.effects){if(!ev.effects.hasOwnProperty(k))continue;var m=STAT_META[k];if(m)fxText+='<span style="color:'+(ev.effects[k]>0?'#16a34a':'#dc2626')+';font-weight:600">'+m.icon+(ev.effects[k]>0?'+':'')+ev.effects[k]+'</span> ';}}var dtag=ev.dilemma?'<span style="background:#FFE4D6;color:#B85C38;padding:2px 8px;border-radius:10px;font-size:11px">🎭 两难</span> ':'';$app.innerHTML=renderTopBar()+'<div class="main-area"><div class="card event-card"><div class="card-title">'+(ev.tone==='positive'?'📈 好消息':'📉 坏消息')+'</div><div class="card-body"><p style="font-weight:600;font-size:16px;color:#1a1a2e;margin-bottom:8px">'+dtag+ev.title+'</p><p>'+ev.text.replace(/\n/g,'<br>')+'</p>'+(fxText?'<p style="margin-top:8px">'+fxText+'</p>':'')+'</div></div><div style="text-align:center;font-size:12px;color:#999;margin-top:4px">'+(STATE._eventIndex+1)+' / '+STATE._eventQueue.length+' 个事件</div><button class="btn btn-primary" onclick="G.nextEvent()">继续 →</button></div>';}
@@ -272,13 +275,14 @@ function renderMajorEvent(){var ev=STATE._currentMajor;$app.innerHTML=renderTopB
 function renderBranch(){var ev=STATE._currentMajor;var btns='';for(var i=0;i<ev.branches.length;i++){btns+='<button class="btn" onclick="G.chooseBranch('+i+')"><div class="btn-label">'+ev.branches[i].label+'</div><div class="btn-desc">'+ev.branches[i].desc+'</div></button>';}$app.innerHTML=renderTopBar()+'<div class="main-area"><div class="card event-card major"><div class="card-title">⚡ '+ev.title+'</div><div class="card-body"><p>你必须做出选择：</p></div></div><div class="btn-group">'+btns+'</div></div>';}
 function renderSummary(){var goEnd=STATE._pendingEnding||checkCriticalEnding()||STATE.quarter>=8;$app.innerHTML=renderTopBar()+'<div class="main-area">'+(STATE._branchResult?'<div class="card"><div class="card-body"><p>'+STATE._branchResult.replace(/\n/g,'<br>')+'</p></div></div>':'')+'<button class="btn btn-primary" onclick="'+(goEnd?'G.toEnding()':'G.nextQuarter()')+'">'+(goEnd?'查看结局 →':'进入下一季度 →')+'</button></div>';}
 function renderEnding(){var ending=STATE._pendingEnding?(ENDINGS.find(function(e){return e.id===STATE._pendingEnding;})||determineEnding()):determineEnding();var s=STATE.stats;var sh='';for(var k in STAT_META){if(!STAT_META.hasOwnProperty(k))continue;var m=STAT_META[k];var v=clamp(s[k],0,100);sh+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:12px;min-width:50px">'+m.icon+m.label+'</span><div style="flex:1;height:6px;background:#FFF0F3;border-radius:3px;overflow:hidden"><div style="width:'+v+'%;height:100%;background:'+m.color+';border-radius:3px"></div></div><span style="font-size:11px;color:#999;min-width:22px;text-align:right">'+v+'</span></div>';}var mj=STATE.eventLog.filter(function(e){return e.major;});var tl=mj.length?'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #FFF0F3"><div style="font-size:13px;color:#888;margin-bottom:6px">📜 经历的重大事件</div>'+mj.map(function(e){return'<div style="font-size:13px;color:#666;margin-bottom:3px">Q'+e.q+' · '+e.title+'</div>';}).join('')+'</div>':'';var ac={};STATE.actionHistory.forEach(function(a){ac[a]=(ac[a]||0)+1;});var top=Object.entries(ac).sort(function(a,b){return b[1]-a[1];}).slice(0,3).map(function(x){var a=ACTIONS.find(function(aa){return aa.id===x[0];});return a?a.label+'×'+x[1]:'';}).filter(Boolean).join('、');$app.innerHTML='<div class="main-area" style="padding-top:24px"><div class="card ending-card"><div style="font-size:36px;margin-bottom:8px">'+getAvatar()+'</div><div style="font-size:14px;color:#888;margin-bottom:4px">'+esc(STATE.playerName)+' 的结局</div><div class="ending-title">'+ending.title+'</div><div class="ending-text">'+ending.text.replace(/\n/g,'<br>')+'</div><div class="ending-tags">'+(ending.tags||[]).map(function(t){return'<span class="ending-tag">#'+t+'</span>';}).join('')+'</div></div><div class="card" style="margin-top:8px"><div class="card-title">📊 最终状态</div><div class="card-body">'+sh+(top?'<div style="margin-top:8px;font-size:13px;color:#888">最常做的事：'+top+'</div>':'')+tl+'</div></div><div style="margin-top:12px"><button class="btn btn-primary" onclick="G.restart()" style="width:100%">再来一次</button></div></div>';}
-function startGame(){initStats();STATE.gender='';STATE.playerName='';STATE.playerBio='';STATE.phase='profile';render();}
-function setGender(g){STATE.gender=g;document.querySelectorAll('.gender-btn').forEach(function(b){b.classList.remove('selected');});if(event&&event.currentTarget)event.currentTarget.classList.add('selected');updateProfileBtn();}
-function updateProfileBtn(){var btn=document.querySelector('.btn-primary');if(btn){if(STATE.gender&&STATE.playerName.trim())btn.classList.remove('btn-disabled');else btn.classList.add('btn-disabled');}}
+function startGame(){initStats();STATE.avatar='';STATE.playerName='';STATE.playerBio='';STATE.phase='profile';render();}
+function setAvatar(a){STATE.avatar=a;document.querySelectorAll('.avatar-btn').forEach(function(b){b.classList.remove('selected');});if(event&&event.currentTarget)event.currentTarget.classList.add('selected');updateProfileBtn();}
+function randomAvatar(){STATE.avatar=AVATARS[trueRand(AVATARS.length)];render();}
+function updateProfileBtn(){var btn=document.querySelector('.btn-primary');if(btn){if(STATE.avatar&&STATE.playerName.trim())btn.classList.remove('btn-disabled');else btn.classList.add('btn-disabled');}}
 function updateName(v){STATE.playerName=v;updateProfileBtn();}
 function updateBio(v){STATE.playerBio=v;}
-function randomName(){STATE.playerName=RANDOM_NAMES[Math.floor(Math.random()*RANDOM_NAMES.length)];var inp=document.getElementById('nameInput');if(inp)inp.value=STATE.playerName;updateProfileBtn();}
-function confirmProfile(){if(!STATE.gender||!STATE.playerName.trim())return;STATE._initBio=STATE.playerBio||'大厂打工人';STATE.quarter=1;STATE.phase='intro';render();}
+function randomName(){STATE.playerName=RANDOM_NAMES[trueRand(RANDOM_NAMES.length)];var inp=document.getElementById('nameInput');if(inp)inp.value=STATE.playerName;updateProfileBtn();}
+function confirmProfile(){if(!STATE.avatar||!STATE.playerName.trim())return;STATE._initBio=STATE.playerBio||'大厂打工人';STATE.quarter=1;STATE.phase='intro';render();}
 function toAction(){STATE.selectedActions=[];STATE.phase='action';render();}
 function backToIntro(){STATE.phase='intro';render();}
 function toggleAction(id){var idx=STATE.selectedActions.indexOf(id);if(idx>=0)STATE.selectedActions.splice(idx,1);else if(STATE.selectedActions.length<3)STATE.selectedActions.push(id);var area=document.getElementById('actionArea');var st=area?area.scrollTop:0;renderAction();var a2=document.getElementById('actionArea');if(a2)a2.scrollTop=st;}
@@ -305,7 +309,7 @@ function confirmActions(){
   if(didInfluence&&STATE.stats.influence>=70)STATE.stats.influence=Math.max(5,STATE.stats.influence-1);
   if(didFame&&STATE.stats.fame>=60)STATE.stats.fame=Math.max(3,STATE.stats.fame-1);
   if(checkCriticalEnding()){STATE.phase='ending';render();return;}
-  var numEv=1+Math.floor(Math.random()*3);
+  var numEv=1+Math.floor(trueRand(1000000)/1000000*3);
   var queue=[],usedThisQ={};for(var ei=0;ei<numEv;ei++){var ev=pickNormalEvent(usedThisQ);if(ev){queue.push(ev);usedThisQ[ev.id]=true;if(ev.once)STATE._usedOnceEvents[ev.id]=true;}}
   STATE._eventQueue=queue;STATE._eventIndex=0;
   STATE._currentMajor=pickMajorEvent();
@@ -369,13 +373,13 @@ function pickNormalEvent(usedThisQuarter){
   }
   if(candidates.length===0)return null;
   var totalWeight=0;for(var ci=0;ci<candidates.length;ci++)totalWeight+=candidates[ci].weight;
-  var r=Math.random()*totalWeight;
+  var r=trueRand(1000000)/1000000*totalWeight;
   for(var ci2=0;ci2<candidates.length;ci2++){r-=candidates[ci2].weight;if(r<=0)return candidates[ci2].ev;}
   return candidates[candidates.length-1].ev;
 }
 function pickMajorEvent(){
   var q=STATE.quarter,slot=MAJOR_EVENT_SCHEDULE.find(function(s){return s.q===q;});if(!slot)return null;
-  var chance=q<=4?0.18:(q<=6?0.28:0.35);if(Math.random()>=chance)return null;
+  var chance=q<=4?0.18:(q<=6?0.28:0.35);if(trueRand(1000000)/1000000>=chance)return null;
   var candidates=shuffle(slot.ids.slice());
   for(var i=0;i<candidates.length;i++){var me=MAJOR_EVENTS[candidates[i]];if(!me)continue;if(me.category==='social'&&q<4)continue;if(me.condition()){var copy={};for(var mk in me){if(me.hasOwnProperty(mk))copy[mk]=me[mk];}copy._isMajor=true;return copy;}}
   return null;
@@ -386,9 +390,9 @@ function determineEnding(){var sorted=ENDINGS.slice().sort(function(a,b){return 
 function applyEffects(fx){for(var k in fx){if(fx.hasOwnProperty(k)&&STATE.stats[k]!==undefined)STATE.stats[k]=clamp(STATE.stats[k]+fx[k],0,100);}}
 function applyHidden(fx){for(var k in fx){if(fx.hasOwnProperty(k)&&STATE.hidden[k]!==undefined)STATE.hidden[k]+=fx[k];}}
 function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
-function shuffle(arr){for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=arr[i];arr[i]=arr[j];arr[j]=t;}return arr;}
+function shuffle(arr){for(var i=arr.length-1;i>0;i--){var j=Math.floor(trueRand(1000000)/1000000*(i+1));var t=arr[i];arr[i]=arr[j];arr[j]=t;}return arr;}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-window.G={startGame:startGame,setGender:setGender,updateName:updateName,updateBio:updateBio,randomName:randomName,confirmProfile:confirmProfile,toAction:toAction,backToIntro:backToIntro,toggleAction:toggleAction,confirmActions:confirmActions,nextEvent:nextEvent,chooseEvent:chooseEvent,toBranch:toBranch,chooseBranch:chooseBranch,nextQuarter:nextQuarter,toEnding:toEnding,restart:restart,showTip:showTip,closeTooltip:closeTooltip};
+window.G={startGame:startGame,setAvatar:setAvatar,randomAvatar:randomAvatar,updateName:updateName,updateBio:updateBio,randomName:randomName,confirmProfile:confirmProfile,toAction:toAction,backToIntro:backToIntro,toggleAction:toggleAction,confirmActions:confirmActions,nextEvent:nextEvent,chooseEvent:chooseEvent,toBranch:toBranch,chooseBranch:chooseBranch,nextQuarter:nextQuarter,toEnding:toEnding,restart:restart,showTip:showTip,closeTooltip:closeTooltip};
 render();
 })();
