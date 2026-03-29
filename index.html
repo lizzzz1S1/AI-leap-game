@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI大跃进生存模拟器</title>
+<title>AI大时代生存模拟器</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 html, body { 
@@ -296,25 +296,21 @@ html, body {
   text-align: center;
 }
 .avatar-grid {
-  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 16px;
+  display: flex; gap: 16px; justify-content: center; margin-bottom: 12px;
 }
 .avatar-btn {
-  width: 48px; height: 48px; border-radius: 12px;
-  border: 2px solid #FFE0E6; background: #FFF5F7;
-  font-size: 24px; cursor: pointer;
+  width: 64px; height: 64px; border-radius: 50%;
+  border: 2.5px solid #FFE0E6; background: #FFF5F7;
+  font-size: 30px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
 .avatar-btn.selected {
   border-color: #FF2442; background: #FFE8EC;
-  box-shadow: 0 0 0 3px rgba(255,36,66,0.15);
-  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(255,36,66,0.12);
+  transform: scale(1.08);
 }
-.avatar-btn:active { transform: scale(0.9); }
-.avatar-btn.dice-avatar {
-  background: linear-gradient(135deg, #FF2442, #FF6680);
-  border-color: #FF2442; color: white;
-}
+.avatar-btn:active { transform: scale(0.92); }
 .profile-field { margin-bottom: 18px; }
 .profile-field label {
   display: block; font-size: 14px; color: #888; margin-bottom: 6px; font-weight: 500;
