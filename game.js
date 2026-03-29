@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 
-const STATE={quarter:0,selectedActions:[],phase:'start',stats:{},hidden:{},flags:{},actionHistory:[],eventLog:[],gender:'',playerName:'',playerBio:'',showTooltip:null,_eventQueue:[],_eventIndex:0,_currentMajor:null,_branchResult:null,_pendingEnding:null,_thisQuarterActions:[],_initTags:[],_initBio:''};
+const STATE={quarter:0,selectedActions:[],phase:'start',stats:{},hidden:{},flags:{},actionHistory:[],eventLog:[],gender:'',playerName:'',playerBio:'',showTooltip:null,_eventQueue:[],_eventIndex:0,_currentMajor:null,_branchResult:null,_pendingEnding:null,_thisQuarterActions:[],_initTags:[],_initBio:'',_usedOnceEvents:{}};
 const RANDOM_NAMES=['悟空','悟能','悟净','师傅','玄奘','奶龙','奥特曼','佩奇','克劳德','小扎','小马','老黄'];
 function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
 
@@ -10,7 +10,7 @@ function initStats(){
   STATE.stats={work_skill:randInt(10,30),ai_skill:randInt(0,30),influence:randInt(5,30),fame:randInt(0,20),money:randInt(0,30),energy:randInt(60,100),mood:randInt(60,100)};
   STATE.hidden={positioning:0,survival:10};STATE.flags={};STATE.actionHistory=[];STATE.eventLog=[];STATE.quarter=0;STATE.selectedActions=[];
   STATE._eventQueue=[];STATE._eventIndex=0;STATE._currentMajor=null;STATE._branchResult=null;STATE._pendingEnding=null;STATE._thisQuarterActions=[];
-  STATE._initTags=generateInitTags(STATE.stats);STATE._initBio='';
+  STATE._initTags=generateInitTags(STATE.stats);STATE._initBio='';STATE._usedOnceEvents={};
 }
 function generateInitTags(s){
   var tags=[];
@@ -53,55 +53,55 @@ const ACTIONS=[
   {id:'think',label:'📚 学习/思考',desc:'读书、思考人生、体会艺术、学多国语言',effects:{work_skill:3,mood:6,energy:3,fame:-1},hiddenFx:{positioning:1,survival:4}},
 ];
 const PERSONAL_EVENTS=[
-  {id:'p1',title:'找到了自己的AI工作流',text:'不再追每个新工具，沉淀出一套稳定的方法。效率翻倍。',effects:{ai_skill:6,work_skill:3,energy:4,mood:4},tone:'positive',type:'passive',actionTrigger:['learn_ai','build'],setFlag:'has_workflow'},
+  {id:'p1',once:true,title:'找到了自己的AI工作流',text:'不再追每个新工具，沉淀出一套稳定的方法。效率翻倍。',effects:{ai_skill:6,work_skill:3,energy:4,mood:4},tone:'positive',type:'passive',actionTrigger:['learn_ai','build'],setFlag:'has_workflow'},
   {id:'p2',title:'某个AI概念突然想通了',text:'之前死记硬背的东西，某天晚上突然贯通了。感觉像脑子里有什么东西被点亮了。',effects:{ai_skill:8,mood:6},hiddenFx:{positioning:1},tone:'positive',type:'passive',actionTrigger:['learn_ai'],condition:function(s){return s.ai_skill>=20;}},
-  {id:'p3',title:'你做的AI工具在组内火了',text:'同事们开始每天用你做的提效脚本。两个之前从不搭理你的同事主动来问你是怎么做到的。',effects:{influence:7,mood:6,ai_skill:3,fame:3},tone:'positive',type:'passive',actionTrigger:['build'],setFlag:'tool_viral'},
-  {id:'p4',title:'你的文章意外出圈了',text:'一篇随手写的观察被行业大佬转发。你开始理解什么叫"内容杠杆"。',effects:{fame:8,mood:6,influence:2},tone:'positive',type:'passive',actionTrigger:['share'],condition:function(s){return s.fame>=12;}},
-  {id:'p5',title:'一位前辈开始带你',text:'TA不教你怎么用工具，而是教你怎么判断——什么值得做，什么是噪音。',effects:{ai_skill:5,work_skill:5,mood:8},hiddenFx:{positioning:2},tone:'positive',type:'passive',actionTrigger:['network_out','network_in'],setFlag:'has_mentor'},
+  {id:'p3',once:true,title:'你做的AI工具在组内火了',text:'同事们开始每天用你做的提效脚本。两个之前从不搭理你的同事主动来问你是怎么做到的。',effects:{influence:7,mood:6,ai_skill:3,fame:3},tone:'positive',type:'passive',actionTrigger:['build'],setFlag:'tool_viral'},
+  {id:'p4',once:true,title:'你的文章意外出圈了',text:'一篇随手写的观察被行业大佬转发。你开始理解什么叫"内容杠杆"。',effects:{fame:8,mood:6,influence:2},tone:'positive',type:'passive',actionTrigger:['share'],condition:function(s){return s.fame>=12;}},
+  {id:'p5',once:true,title:'一位前辈开始带你',text:'TA不教你怎么用工具，而是教你怎么判断——什么值得做，什么是噪音。',effects:{ai_skill:5,work_skill:5,mood:8},hiddenFx:{positioning:2},tone:'positive',type:'passive',actionTrigger:['network_out','network_in'],setFlag:'has_mentor'},
   {id:'p6',title:'睡了个久违的好觉',text:'十点上床，七点醒来，一个梦都没做。早上出门时发现连路上的树都比平时好看了。',effects:{energy:12,mood:10},tone:'positive',type:'passive',actionTrigger:['rest'],condition:function(s){return s.energy<=50;}},
   {id:'p7',title:'想清楚了一件事',text:'不是AI的问题，也不是工作的问题。是关于你到底想成为什么样的人。',effects:{mood:10,work_skill:3},hiddenFx:{survival:4},tone:'positive',type:'passive',actionTrigger:['think','rest']},
   {id:'p8',title:'老板夸你方案写得好',text:'不是因为AI，是因为你逻辑清晰、表达精准。基本功被看到了。',effects:{work_skill:5,influence:5,mood:5},tone:'positive',type:'passive'},
   {id:'p9',title:'你帮同事解决了一个棘手问题',text:'不是技术问题，是沟通协调问题。TA说"你比我多数组长都懂这件事"。',effects:{work_skill:4,influence:5,mood:4},tone:'positive',type:'passive'},
-  {id:'p10',title:'第一次做出完整可用Demo',text:'从想法到能跑的产品，独立完成。你给同事演示时看到TA脸上真实的惊喜。',effects:{ai_skill:6,fame:5,mood:7},tone:'positive',type:'passive',condition:function(s){return s.ai_skill>=25;}},
-  {id:'p11',title:'你用AI帮老板做了一个惊艳的汇报',text:'老板在全员大会上被CEO表扬了。散会后TA单独找到你说："下次还是你来。"',effects:{influence:7,ai_skill:3,mood:5},tone:'positive',type:'passive',condition:function(s){return s.ai_skill>=20&&s.work_skill>=15;}},
-  {id:'p12',title:'有人找你做AI副业',text:'一个朋友说他的公司需要AI咨询，愿意付费。对方给了一个诚意十足的报价。',tone:'positive',type:'choice',actionTrigger:['build','learn_ai'],condition:function(s){return s.ai_skill>=30;},choices:[
+  {id:'p10',once:true,title:'第一次做出完整可用Demo',text:'从想法到能跑的产品，独立完成。你给同事演示时看到TA脸上真实的惊喜。',effects:{ai_skill:6,fame:5,mood:7},tone:'positive',type:'passive',condition:function(s){return s.ai_skill>=25;}},
+  {id:'p11',once:true,title:'你用AI帮老板做了一个惊艳的汇报',text:'老板在全员大会上被CEO表扬了。散会后TA单独找到你说："下次还是你来。"',effects:{influence:7,ai_skill:3,mood:5},tone:'positive',type:'passive',condition:function(s){return s.ai_skill>=20&&s.work_skill>=15;}},
+  {id:'p12',once:true,title:'有人找你做AI副业',text:'一个朋友说他的公司需要AI咨询，愿意付费。对方给了一个诚意十足的报价。',tone:'positive',type:'choice',actionTrigger:['build','learn_ai'],condition:function(s){return s.ai_skill>=30;},choices:[
     {label:'接！赚外快',desc:'时间精力换真金白银',apply:function(s){if(s.energy>=50)return{effects:{money:10,ai_skill:4,energy:-7,mood:3},text:'你赚到了第一笔AI咨询费。"能靠AI技能赚钱"本身就是证明。'};return{effects:{money:8,energy:-10,mood:-3},text:'你接了，但体力不够。钱到手了，人快撑不住了。'};}},
     {label:'婉拒，专注主业',desc:'精力有限，不分心',apply:function(){return{effects:{mood:2,energy:3},text:'你拒绝了。专注才是你的护城河。'};}},
   ]},
-  {id:'p13',title:'导师推荐你去AI闭门交流会',text:'只有30个名额，全是行业里真正在做事的人。去的话要请一天假。',tone:'positive',type:'choice',requireFlag:'has_mentor',choices:[
+  {id:'p13',once:true,title:'导师推荐你去AI闭门交流会',text:'只有30个名额，全是行业里真正在做事的人。去的话要请一天假。',tone:'positive',type:'choice',requireFlag:'has_mentor',choices:[
     {label:'请假去',desc:'见见真正的人',apply:function(){return{effects:{fame:7,ai_skill:5,energy:-3,money:-2},hiddenFx:{positioning:2},text:'你见到了真正在做事的人。清醒本身就是收获。'};}},
     {label:'算了，最近走不开',desc:'工作不等人',apply:function(){return{effects:{influence:2,mood:-3},text:'你留在了工位上。有点后悔。'};}},
   ]},
-  {id:'p14',title:'你的工具引起了别的团队注意',text:'三个团队负责人来找你，想在他们部门推广。但你的老板对此态度暧昧。',tone:'positive',type:'choice',dilemma:true,requireFlag:'tool_viral',choices:[
+  {id:'p14',once:true,title:'你的工具引起了别的团队注意',text:'三个团队负责人来找你，想在他们部门推广。但你的老板对此态度暧昧。',tone:'positive',type:'choice',dilemma:true,requireFlag:'tool_viral',choices:[
     {label:'主动跨部门推广',desc:'争取最大影响力，但可能越界',apply:function(){return{effects:{influence:8,fame:5,mood:-3},text:'你在公司内火了。但也树了敌——你的老板觉得你抢了TA的风头。',setFlag:'boss_enemy'};}},
     {label:'低调，通过老板来推',desc:'给老板面子',apply:function(){return{effects:{influence:5,mood:3},text:'让老板出面推广。双赢，只是你少了独立存在感。'};}},
   ]},
-  {id:'p15',title:'晋升机会，但代价是放弃AI探索',text:'老板说你有机会参与晋升评审，但需要你主导一个战略项目——意味着AI探索要暂停。',tone:'positive',type:'choice',dilemma:true,condition:function(s){return s.influence>=30&&s.work_skill>=30;},phase:'mid',choices:[
+  {id:'p15',once:true,title:'晋升机会，但代价是放弃AI探索',text:'老板说你有机会参与晋升评审，但需要你主导一个战略项目——意味着AI探索要暂停。',tone:'positive',type:'choice',dilemma:true,condition:function(s){return s.influence>=30&&s.work_skill>=30;},phase:'mid',choices:[
     {label:'接！晋升是硬通货',desc:'放弃AI探索，押注晋升',apply:function(s){if(s.work_skill>=45&&s.influence>=40)return{effects:{influence:12,money:8,work_skill:5,mood:3},text:'你押中了。晋升通过。AI探索暂停了——但现在有更多资源。'};return{effects:{influence:5,work_skill:3,mood:-5},text:'评审没过。晋升落空，AI方向也耽误了。两头落空。'};}},
     {label:'婉拒，坚持AI方向',desc:'押注技术深度',apply:function(){return{effects:{ai_skill:3,mood:3},hiddenFx:{positioning:2},text:'你拒绝了晋升机会。晋升可以再等，AI这波窗口期不会一直等你。'};}},
   ]},
-  {id:'p16',title:'内容意外爆了',text:'你随手发的一条分享突然有了10万阅读。涌来的是评论、私信、合作邀约，还有质疑。',tone:'positive',type:'choice',condition:function(s){return s.fame>=20;},actionTrigger:['share'],choices:[
+  {id:'p16',once:true,title:'内容意外爆了',text:'你随手发的一条分享突然有了10万阅读。涌来的是评论、私信、合作邀约，还有质疑。',tone:'positive',type:'choice',condition:function(s){return s.fame>=20;},actionTrigger:['share'],choices:[
     {label:'趁热追更，保持输出',desc:'流量不能浪费',apply:function(s){if(s.energy>=50&&s.ai_skill>=35)return{effects:{fame:9,influence:3,energy:-6,mood:4},text:'你连续更了三篇，质量在线。开始理解"内容飞轮"。'};return{effects:{fame:7,energy:-9,mood:-5},text:'你强撑着追更，但质量下滑。有人说"后续比首篇差远了"。'};}},
     {label:'冷静处理，回应质疑',desc:'先把口碑做稳',apply:function(){return{effects:{fame:5,mood:3,ai_skill:2},text:'你修正了不准确的部分。失去了一些流量，但建立了"靠谱"的形象。'};}},
   ]},
   {id:'p17',title:'你意识到自己已经很久没休息了',text:'上次真正放松是什么时候？你想不起来了。每天醒来第一件事是看消息，睡前也是。',effects:{mood:-8,energy:-5},tone:'negative',type:'passive',statTrigger:{energy:'low'},condition:function(s){return s.energy<=45;}},
   {id:'p18',title:'失眠越来越严重',text:'躺在床上脑子里全是模型架构、KPI。安眠药吃到了第三盒。你开始害怕上床睡觉。',effects:{energy:-10,mood:-6},tone:'negative',type:'passive',statTrigger:{energy:'low',mood:'low'},condition:function(s){return s.energy<=40&&s.mood<=45;}},
-  {id:'p19',title:'体检报告亮红灯',text:'颈椎3度，视力从1.0掉到0.6，血压偏高。医生问你"平时运动吗"，你沉默了五秒。',effects:{mood:-6,energy:-5},tone:'negative',type:'passive',statTrigger:{energy:'low'},condition:function(s){return s.energy<=45;},setFlag:'health_warning'},
-  {id:'p20',title:'同事猝死的消息传来',text:'不是你认识的人，但就在隔壁楼，33岁。整个工区弥漫着一种说不出的沉默。',effects:{mood:-15,energy:-3},tone:'negative',type:'passive'},
+  {id:'p19',once:true,title:'体检报告亮红灯',text:'颈椎3度，视力从1.0掉到0.6，血压偏高。医生问你"平时运动吗"，你沉默了五秒。',effects:{mood:-6,energy:-5},tone:'negative',type:'passive',statTrigger:{energy:'low'},condition:function(s){return s.energy<=45;},setFlag:'health_warning'},
+  {id:'p20',once:true,title:'同事猝死的消息传来',text:'不是你认识的人，但就在隔壁楼，33岁。整个工区弥漫着一种说不出的沉默。',effects:{mood:-15,energy:-3},tone:'negative',type:'passive'},
   {id:'p21',title:'连续加班三周',text:'项目赶工期，每天凌晨才走，周末也没有。你学会了在电梯里闭眼养神三十秒。',effects:{energy:-9,mood:-7,money:3},tone:'negative',type:'passive',statTrigger:{energy:'low'}},
   {id:'p22',title:'焦虑型信息过载',text:'每天刷200条AI新闻，看到别人的产出就心悸。认识的名词越来越多，做的东西越来越少。',effects:{mood:-9,energy:-4},tone:'negative',type:'passive',actionTrigger:['learn_ai']},
   {id:'p23',title:'Demo做完了但没人用',text:'很酷的技术，零复用率。发到群里只有两个礼貌性点赞。',effects:{mood:-9,fame:-3,influence:-2},tone:'negative',type:'passive',actionTrigger:['build']},
   {id:'p24',title:'基础业务能力在退化',text:'一直在追AI，PPT不会写了，项目管理也生疏了。老板让你出方案，发现自己比三年前还差。',effects:{work_skill:-6,mood:-4},tone:'negative',type:'passive',condition:function(s){return s.ai_skill>s.work_skill+20;}},
   {id:'p25',title:'把所有问题都理解成AI问题',text:'买菜想用Agent，写周报想fine-tune。同事说："跟你沟通越来越难了，你说话都是术语。"',effects:{work_skill:-4,mood:-5,influence:-2},hiddenFx:{positioning:-1},tone:'negative',type:'passive',actionTrigger:['learn_ai']},
-  {id:'p26',title:'你需要住院检查',text:'上次体检的问题恶化了。医生说如果不处理，半年内可能有更大的风险。但你手头有最关键的项目。',tone:'negative',type:'choice',dilemma:true,requireFlag:'health_warning',choices:[
+  {id:'p26',once:true,title:'你需要住院检查',text:'上次体检的问题恶化了。医生说如果不处理，半年内可能有更大的风险。但你手头有最关键的项目。',tone:'negative',type:'choice',dilemma:true,requireFlag:'health_warning',choices:[
     {label:'请假住院',desc:'身体是底线',apply:function(){return{effects:{energy:15,mood:5,money:-5,influence:-4},text:'你在医院待了两周。出院后感到前所未有的轻松。',setFlag:'took_rest'};}},
     {label:'先扛着，项目走不开',desc:'等忙完再说',apply:function(){return{effects:{energy:-8,mood:-10},text:'你选择了扛。但你心里知道这个决定可能在某个时刻让你付出更大代价。'};}},
   ]},
-  {id:'p27',title:'和另一半大吵了一架',text:'"你心里只有工作和AI，我在你的OKR里排第几？"你没有立刻回答，因为你在想技术问题。',tone:'negative',type:'choice',dilemma:true,choices:[
+  {id:'p27',once:true,title:'和另一半大吵了一架',text:'"你心里只有工作和AI，我在你的OKR里排第几？"你没有立刻回答，因为你在想技术问题。',tone:'negative',type:'choice',dilemma:true,choices:[
     {label:'认错，请假陪TA一天',desc:'关系比什么都重要',apply:function(){return{effects:{mood:9,energy:3,influence:-2},text:'你去了很久没去的公园。发现蓝天还在，只是你很久没抬头看了。'};}},
     {label:'冷处理，先忙完再说',desc:'眼前的事更紧急',apply:function(){return{effects:{mood:-12,energy:-2},text:'你没有回应。晚上回家时对方已经睡了。你坐在客厅里，第一次觉得代价已经在发生了。'};}},
   ]},
-  {id:'p28',title:'猎头来了',text:'另一个大厂开价比你高25%。对方说："我们正在组建AI战略团队，你的背景很合适。"',tone:'positive',type:'choice',dilemma:true,condition:function(s){return(s.ai_skill>=40||s.work_skill>=40)&&s.fame>=20;},phase:'mid',choices:[
+  {id:'p28',once:true,title:'猎头来了',text:'另一个大厂开价比你高25%。对方说："我们正在组建AI战略团队，你的背景很合适。"',tone:'positive',type:'choice',dilemma:true,condition:function(s){return(s.ai_skill>=40||s.work_skill>=40)&&s.fame>=20;},phase:'mid',choices:[
     {label:'去谈谈，不一定要跳',desc:'摸清自己的价值',apply:function(){return{effects:{money:3,mood:5,ai_skill:2},text:'你去谈了，没跳，但连走路都更有底气了。'};}},
     {label:'直接拒绝，专注当前',desc:'不为钱动摇',apply:function(){return{effects:{mood:3},hiddenFx:{survival:1},text:'你拒绝了。现在需要的不是换地方，而是把当前的事做深。'};}},
     {label:'认真考虑，准备跳',desc:'25%涨幅确实诱人',apply:function(s){if(s.ai_skill>=45||s.fame>=35)return{effects:{money:8,fame:5,influence:-8},text:'你跳了。新公司待遇好，但从零开始建立信任。',setFlag:'jumped'};return{effects:{money:6,influence:-10,mood:-3},text:'你跳了，但新公司比想象中复杂。一切都得重新证明。',setFlag:'jumped'};}},
@@ -110,17 +110,17 @@ const PERSONAL_EVENTS=[
 const COMPANY_EVENTS=[
   {id:'c1',title:'领导把AI当效率工具，不要求表演',text:'终于来了一个务实的人。不再要求每周出AI汇报PPT了，只看有没有实际提升。',effects:{influence:5,money:4,energy:4,mood:5},tone:'positive',type:'passive',actionTrigger:['work','build']},
   {id:'c2',title:'老板开始重视真正落地的人',text:'那些只会喊口号的人被边缘化了。你的实际产出被看到了。',effects:{influence:6,money:4,mood:5},tone:'positive',type:'passive',actionTrigger:['build','work']},
-  {id:'c3',title:'公司开放AI试点预算',text:'终于有钱有算力了。组里每人都可以申请API额度。',effects:{influence:5,money:7,ai_skill:4},tone:'positive',type:'passive'},
-  {id:'c4',title:'直属领导愿意替你扛风险',text:'TA说："你去试，出了问题我兜着。"你第一次感到有人真正信任你。',effects:{mood:8,influence:5,energy:3},tone:'positive',type:'passive',setFlag:'boss_shield'},
-  {id:'c5',title:'AI中台成立，你进核心组',text:'从边缘探索变成正式编制。公司在认真走AI这条路了。',effects:{influence:7,ai_skill:4,money:5},tone:'positive',type:'passive',condition:function(s){return s.ai_skill>=30;}},
-  {id:'c6',title:'年终奖超预期',text:'虽然行业整体在降，但你们组的业绩撑住了。',effects:{money:12,mood:7},tone:'positive',type:'passive'},
-  {id:'c7',title:'公司给全员发了AI学习津贴',text:'每月500块买课程和工具。虽然不多，但姿态到了。',effects:{money:3,ai_skill:3,mood:4},tone:'positive',type:'passive'},
-  {id:'c8',title:'老板让你主导一个新AI项目',text:'预算不多，但你有完全的自主权。问题是你手上已经有一个常规项目了。',tone:'positive',type:'choice',condition:function(s){return s.ai_skill>=25;},choices:[
+  {id:'c3',once:true,title:'公司开放AI试点预算',text:'终于有钱有算力了。组里每人都可以申请API额度。',effects:{influence:5,money:7,ai_skill:4},tone:'positive',type:'passive'},
+  {id:'c4',once:true,title:'直属领导愿意替你扛风险',text:'TA说："你去试，出了问题我兜着。"你第一次感到有人真正信任你。',effects:{mood:8,influence:5,energy:3},tone:'positive',type:'passive',setFlag:'boss_shield'},
+  {id:'c5',once:true,title:'AI中台成立，你进核心组',text:'从边缘探索变成正式编制。公司在认真走AI这条路了。',effects:{influence:7,ai_skill:4,money:5},tone:'positive',type:'passive',condition:function(s){return s.ai_skill>=30;}},
+  {id:'c6',once:true,title:'年终奖超预期',text:'虽然行业整体在降，但你们组的业绩撑住了。',effects:{money:12,mood:7},tone:'positive',type:'passive'},
+  {id:'c7',once:true,title:'公司给全员发了AI学习津贴',text:'每月500块买课程和工具。虽然不多，但姿态到了。',effects:{money:3,ai_skill:3,mood:4},tone:'positive',type:'passive'},
+  {id:'c8',once:true,title:'老板让你主导一个新AI项目',text:'预算不多，但你有完全的自主权。问题是你手上已经有一个常规项目了。',tone:'positive',type:'choice',condition:function(s){return s.ai_skill>=25;},choices:[
     {label:'接！两个项目并行',desc:'证明自己的能力上限',apply:function(s){if(s.energy>=55)return{effects:{ai_skill:7,influence:6,energy:-9,mood:-3},text:'你开始了双线程生活。像个超频运行的CPU——发热，但还在跑。'};return{effects:{ai_skill:4,influence:3,energy:-12,mood:-6},text:'你高估了精力。两个项目都没做好，开始失眠。'};}},
     {label:'接了，但把旧项目移交',desc:'All in AI方向',apply:function(){return{effects:{ai_skill:6,influence:5,work_skill:-2},hiddenFx:{positioning:2},text:'你把常规项目交给同事。如果这个项目做不出来，退路就没了。'};}},
     {label:'婉拒，专注当前项目',desc:'贪多嚼不烂',apply:function(){return{effects:{work_skill:3,mood:2,influence:2},text:'你拒绝了。三个月后看到别人的项目汇报——有点羡慕，但你知道自己的选择是对的。'};}},
   ]},
-  {id:'c9',title:'公司要提拔AI方向负责人',text:'你和另一个同事都是候选人。TA更资深，但你更懂AI。',tone:'positive',type:'choice',dilemma:true,condition:function(s){return s.influence>=25&&s.ai_skill>=30;},phase:'mid',choices:[
+  {id:'c9',once:true,title:'公司要提拔AI方向负责人',text:'你和另一个同事都是候选人。TA更资深，但你更懂AI。',tone:'positive',type:'choice',dilemma:true,condition:function(s){return s.influence>=25&&s.ai_skill>=30;},phase:'mid',choices:[
     {label:'主动争取，拿出方案',desc:'把规划讲清楚',apply:function(s){if(s.ai_skill>=40&&s.influence>=35)return{effects:{influence:8,money:5,mood:5,energy:-4},text:'老板被说服了——你成了AI方向负责人。',setFlag:'ai_lead'};return{effects:{influence:-4,mood:-7},text:'你争取了，但老板觉得你还不够成熟。这次输了。'};}},
     {label:'不争，默默做事',desc:'金子总会发光',apply:function(){return{effects:{mood:-3,work_skill:2},text:'你没有争。另一个人上了。你告诉自己不在意，但你在意。'};}},
   ]},
@@ -132,17 +132,17 @@ const COMPANY_EVENTS=[
   {id:'c12',title:'AI成了裁员借口',text:'"AI可以替代这些岗位了。"你知道其实替代不了，但这个说法很好用。',effects:{mood:-11,energy:-5,influence:-3},tone:'negative',type:'passive'},
   {id:'c13',title:'预算被砍，项目只剩PPT',text:'上季度还在扩编，这季度直接砍到底。',effects:{influence:-6,mood:-8,money:-3},tone:'negative',type:'passive'},
   {id:'c14',title:'跨部门内耗',text:'三个部门都想当AI牵头方。开了六次会，没有一次有结论。',effects:{energy:-7,influence:-4,mood:-6},tone:'negative',type:'passive'},
-  {id:'c15',title:'新高管否定上轮AI方向',text:'新VP说"之前的路线全是弯路"。你的半年积累被一句话宣判无效。',effects:{mood:-9,ai_skill:-4,influence:-3},tone:'negative',type:'passive'},
+  {id:'c15',once:true,title:'新高管否定上轮AI方向',text:'新VP说"之前的路线全是弯路"。你的半年积累被一句话宣判无效。',effects:{mood:-9,ai_skill:-4,influence:-3},tone:'negative',type:'passive'},
   {id:'c16',title:'外包AI咨询团队入场',text:'他们比你懂得少，但PPT比你好看10倍。老板信了。',effects:{mood:-7,influence:-4},tone:'negative',type:'passive'},
-  {id:'c17',title:'公司搞12小时闭门AI大赛',text:'不能离场，要求产出Demo。你最后做出来了，但你只想回家睡觉。',effects:{energy:-13,mood:-5,ai_skill:3},tone:'negative',type:'passive',actionTrigger:['build']},
-  {id:'c18',title:'隔壁组全被裁了',text:'昨天还一起吃食堂，今天他们的工位已经清空了。后背发凉。',effects:{mood:-11,energy:-3,influence:-2},tone:'negative',type:'passive'},
+  {id:'c17',once:true,title:'公司搞12小时闭门AI大赛',text:'不能离场，要求产出Demo。你最后做出来了，但你只想回家睡觉。',effects:{energy:-13,mood:-5,ai_skill:3},tone:'negative',type:'passive',actionTrigger:['build']},
+  {id:'c18',once:true,title:'隔壁组全被裁了',text:'昨天还一起吃食堂，今天他们的工位已经清空了。后背发凉。',effects:{mood:-11,energy:-3,influence:-2},tone:'negative',type:'passive'},
   {id:'c19',title:'你的项目被无限期搁置',text:'不是做得不好，是公司战略又变了。',effects:{mood:-9,influence:-5},tone:'negative',type:'passive'},
   {id:'c20',title:'绩效被打了低分',text:'你觉得自己做得不错，但老板的标准和你想的不一样。',effects:{mood:-9,money:-4,influence:-5},tone:'negative',type:'passive'},
-  {id:'c21',title:'你发现公司AI项目数据造假',text:'核心指标注了水，但所有人都装作不知道。你知道这件事——但你也知道说出来的代价。',tone:'negative',type:'choice',dilemma:true,phase:'mid',choices:[
+  {id:'c21',once:true,title:'你发现公司AI项目数据造假',text:'核心指标注了水，但所有人都装作不知道。你知道这件事——但你也知道说出来的代价。',tone:'negative',type:'choice',dilemma:true,phase:'mid',choices:[
     {label:'私下跟老板说',desc:'这是职业道德底线',apply:function(){if(STATE.flags.boss_shield)return{effects:{influence:6,mood:6},text:'老板说："谢谢你告诉我。这件事交给我处理。"你感到被保护着。'};return{effects:{influence:-6,mood:-5},text:'老板说"这种事大家都知道，别太认真。"你感到一阵恶心。'};}},
     {label:'装作没看到',desc:'枪打出头鸟',apply:function(){return{effects:{mood:-7},text:'你闭上了眼。但这件事像一根刺一样扎在心里。'};}},
   ]},
-  {id:'c22',title:'老板开始针对你',text:'自从你在推广AI工具那件事上没给TA面子，TA开始在会议上挑你的细节。',tone:'negative',type:'choice',dilemma:true,requireFlag:'boss_enemy',choices:[
+  {id:'c22',once:true,title:'老板开始针对你',text:'自从你在推广AI工具那件事上没给TA面子，TA开始在会议上挑你的细节。',tone:'negative',type:'choice',dilemma:true,requireFlag:'boss_enemy',choices:[
     {label:'主动认错，修复关系',desc:'低头不代表认输',apply:function(){return{effects:{influence:4,mood:-4},text:'你请老板吃了饭。关系缓和了。这是职场的一部分。',setFlag:'boss_peace'};}},
     {label:'跨级汇报，走正规渠道',desc:'道理在我这边',apply:function(s){if(s.influence>=40)return{effects:{influence:-3,mood:3},text:'你找了上级。老板暂时收手了，但这场博弈还没结束。'};return{effects:{influence:-8,mood:-6},text:'你找了上级。但没有足够影响力，反而被认为是"不成熟"。'};}},
     {label:'忍着，等待时机',desc:'留得青山在',apply:function(){return{effects:{mood:-6,energy:-3},text:'你选择了忍。每天上班都需要多消耗一些精力来维持平静。'};}},
@@ -153,41 +153,41 @@ const INDUSTRY_EVENTS=[
   {id:'i2',title:'推理成本暴降',text:'一年前100美元的任务，现在1美元能完成。你之前搁置的三个想法都可以开始试了。',effects:{ai_skill:4,money:5,mood:4},tone:'positive',type:'passive',actionTrigger:['build']},
   {id:'i3',title:'多模态生成走向成熟',text:'文字、图像、视频、代码的壁垒正在消失。你一直在做的事，价值翻了很多倍。',effects:{ai_skill:6,fame:4,mood:4},tone:'positive',type:'passive'},
   {id:'i4',title:'Agent工具链走向成熟',text:'AI不再只回答问题，而是开始替你干活了。你花了一个周末把工作流自动化了60%。',effects:{ai_skill:6,influence:4,money:4,mood:3},tone:'positive',type:'passive',actionTrigger:['build','learn_ai']},
-  {id:'i5',title:'具身智能出现商用拐点',text:'机器人不再只在实验室，开始在工厂和仓库里真正干活了。物理世界的AI时代要来了。',effects:{ai_skill:5,mood:5},hiddenFx:{positioning:4},tone:'positive',type:'passive',phase:'late'},
+  {id:'i5',once:true,title:'具身智能出现商用拐点',text:'机器人不再只在实验室，开始在工厂和仓库里真正干活了。物理世界的AI时代要来了。',effects:{ai_skill:5,mood:5},hiddenFx:{positioning:4},tone:'positive',type:'passive',phase:'late'},
   {id:'i6',title:'AI编程工具爆发',text:'Cursor、Windsurf、Devin……你写代码的效率翻了5倍。',effects:{ai_skill:6,work_skill:4,mood:4},tone:'positive',type:'passive',actionTrigger:['build','learn_ai']},
-  {id:'i7',title:'你看好的AI创业公司融了一大笔钱',text:'他们做的方向和你研究的很像。你的判断被市场验证了。',effects:{mood:7,fame:4},hiddenFx:{positioning:2},tone:'positive',type:'passive',condition:function(s){return s.ai_skill>=35;}},
-  {id:'i8',title:'一个AI创业公司邀请你加入',text:'薪资涨50%，但期权占大头。公司刚拿了A轮。"我们需要你这样懂AI又懂落地的人。"',tone:'positive',type:'choice',dilemma:true,condition:function(s){return s.ai_skill>=40||s.fame>=35;},phase:'mid',choices:[
+  {id:'i7',once:true,title:'你看好的AI创业公司融了一大笔钱',text:'他们做的方向和你研究的很像。你的判断被市场验证了。',effects:{mood:7,fame:4},hiddenFx:{positioning:2},tone:'positive',type:'passive',condition:function(s){return s.ai_skill>=35;}},
+  {id:'i8',once:true,title:'一个AI创业公司邀请你加入',text:'薪资涨50%，但期权占大头。公司刚拿了A轮。"我们需要你这样懂AI又懂落地的人。"',tone:'positive',type:'choice',dilemma:true,condition:function(s){return s.ai_skill>=40||s.fame>=35;},phase:'mid',choices:[
     {label:'跳！搏一把',desc:'大厂待着也是温水煮青蛙',apply:function(s){if(s.ai_skill>=50||s.fame>=45)return{effects:{money:6,fame:8,influence:-10,energy:-5,mood:6},hiddenFx:{positioning:3},text:'你跳了。从螺丝钉变成多面手。混乱但每天都在学新东西。',setFlag:'joined_startup'};return{effects:{money:4,fame:5,influence:-8,energy:-6,mood:3},text:'你跳了，但没想象中的爽——创业公司要求的东西你有一部分还没准备好。',setFlag:'joined_startup'};}},
     {label:'谢谢，我还想在大厂积累',desc:'创业风险太大',apply:function(){return{effects:{mood:-2},text:'你拒绝了。半年后那家公司的产品上了行业媒体头条。'};}},
   ]},
-  {id:'i9',title:'AI行业会议邀请你去分享',text:'但你最近没什么拿得出手的成果，硬讲怕翻车。',tone:'positive',type:'choice',condition:function(s){return s.fame>=20;},choices:[
+  {id:'i9',once:true,title:'AI行业会议邀请你去分享',text:'但你最近没什么拿得出手的成果，硬讲怕翻车。',tone:'positive',type:'choice',condition:function(s){return s.fame>=20;},choices:[
     {label:'接了，现做准备',desc:'曝光机会不能浪费',apply:function(s){if(s.ai_skill>=40)return{effects:{fame:10,energy:-5,ai_skill:2},text:'你花了三个晚上准备。分享很成功，会后有五个人来问你合作。'};return{effects:{fame:4,mood:-7,energy:-6},text:'你上台了，但内容没撑住。Q&A被问住了两次。'};}},
     {label:'推掉，没准备好就不上',desc:'口碑比流量重要',apply:function(){return{effects:{fame:-2,mood:2,energy:2},text:'你推掉了。面子不重要，做好了再说。'};}},
   ]},
   {id:'i10',title:'范式迭代：你学的AI技能贬值了',text:'上个月掌握的技巧，这个月模型已经自动处理了。你的AI知识突然过时了一大半。',effects:{ai_skill:-9,mood:-7},tone:'negative',type:'passive',actionTrigger:['learn_ai']},
   {id:'i11',title:'行业叙事又切换了',text:'上季度是Agent，这季度是Embodied AI。你永远在追最新的词，但你开始怀疑追词本身是不是一个陷阱。',effects:{mood:-8,ai_skill:-3,fame:-2},tone:'negative',type:'passive'},
-  {id:'i12',title:'巨头发布一体化AI平台',text:'大厂把你能做的全做了，还免费开放。你花三个月做的东西，今天变成了别人产品的一个功能。',effects:{mood:-7,money:-4,ai_skill:-2},tone:'negative',type:'passive',actionTrigger:['build']},
-  {id:'i13',title:'AI泡沫过热，质疑声出现',text:'投资人开始问"你的AI项目有多少真实用户"。',effects:{fame:3,mood:-6},tone:'negative',type:'passive',phase:'mid'},
+  {id:'i12',once:true,title:'巨头发布一体化AI平台',text:'大厂把你能做的全做了，还免费开放。你花三个月做的东西，今天变成了别人产品的一个功能。',effects:{mood:-7,money:-4,ai_skill:-2},tone:'negative',type:'passive',actionTrigger:['build']},
+  {id:'i13',once:true,title:'AI泡沫过热，质疑声出现',text:'投资人开始问"你的AI项目有多少真实用户"。',effects:{fame:3,mood:-6},tone:'negative',type:'passive',phase:'mid'},
   {id:'i14',title:'人才向头部极端集中',text:'最强的人都去了头部公司，开的价格是普通市场的3倍。中腰部越来越难。',effects:{mood:-6,fame:-3,influence:-2},tone:'negative',type:'passive'},
   {id:'i15',title:'监管收紧',text:'新AI管理办法要求所有模型备案，实验性项目全部暂停审查。',effects:{influence:-4,fame:-4,mood:-5},tone:'negative',type:'passive'},
   {id:'i16',title:'AI生成内容泛滥',text:'到处都是AI写的文章和视频。你的真实思考淹没在海量的"看起来不错"里。',effects:{fame:-6,mood:-5},tone:'negative',type:'passive',phase:'mid',actionTrigger:['share']},
-  {id:'i17',title:'一个知名AI公司上市失败',text:'估值从高峰砍了70%。行业信心又被打了一击。',effects:{mood:-7,money:-3},tone:'negative',type:'passive',phase:'late'},
-  {id:'i18',title:'你被误认为AI专家，受邀出席高规格活动',text:'对方说"我们听说你在AI领域很有建树"——但你知道自己还差得远。如果露馅了……',tone:'negative',type:'choice',dilemma:true,condition:function(s){return s.ai_skill>=30&&s.fame>=20;},phase:'mid',choices:[
+  {id:'i17',once:true,title:'一个知名AI公司上市失败',text:'估值从高峰砍了70%。行业信心又被打了一击。',effects:{mood:-7,money:-3},tone:'negative',type:'passive',phase:'late'},
+  {id:'i18',once:true,title:'你被误认为AI专家，受邀出席高规格活动',text:'对方说"我们听说你在AI领域很有建树"——但你知道自己还差得远。如果露馅了……',tone:'negative',type:'choice',dilemma:true,condition:function(s){return s.ai_skill>=30&&s.fame>=20;},phase:'mid',choices:[
     {label:'硬着头皮去',desc:'机会来了就要抓',apply:function(s){if(s.ai_skill>=50&&s.fame>=35)return{effects:{fame:8,influence:4,ai_skill:4,mood:5},text:'你去了。积累比你以为的多。会后有人主动加你微信。'};return{effects:{fame:-5,mood:-12,energy:-8},text:'你露馅了。一个真正的专家问了一个你答不上来的问题。那天晚上你删掉了社交媒体简介。'};}},
     {label:'坦诚婉拒',desc:'诚实是最难的选择',apply:function(){return{effects:{mood:7,fame:-2},hiddenFx:{survival:2},text:'你实话实说了。虽然没参加活动，但你对自己的边界更清楚了。'};}},
   ]},
 ];
 
 const SOCIAL_EVENTS=[
-  {id:'s1',title:'国家推动AI新基建',text:'算力中心、数据立法、AI教育补贴——政策红利来了。',effects:{money:5,influence:4,ai_skill:3},tone:'positive',type:'passive'},
-  {id:'s2',title:'能源突破降低算力成本',text:'新能源进展让算力不再是瓶颈。',effects:{ai_skill:3,money:4,mood:3},tone:'positive',type:'passive'},
-  {id:'s3',title:'全民AI教育普及',text:'你妈都会用AI了。门槛降低意味着应用层市场炸了。',effects:{fame:3,ai_skill:3,work_skill:2},tone:'positive',type:'passive'},
-  {id:'s4',title:'AI相关立法正式通过',text:'政府出台了AI行业的法律框架。规则明确了，但合规成本也上来了。',effects:{ai_skill:2,money:-2,mood:2},tone:'positive',type:'passive'},
-  {id:'s5',title:'全球经济收缩',text:'创新预算在所有公司被优先砍掉。"先活下来再说。"',effects:{money:-6,mood:-5,influence:-3},tone:'negative',type:'passive'},
+  {id:'s1',once:true,title:'国家推动AI新基建',text:'算力中心、数据立法、AI教育补贴——政策红利来了。',effects:{money:5,influence:4,ai_skill:3},tone:'positive',type:'passive'},
+  {id:'s2',once:true,title:'能源突破降低算力成本',text:'新能源进展让算力不再是瓶颈。',effects:{ai_skill:3,money:4,mood:3},tone:'positive',type:'passive'},
+  {id:'s3',once:true,title:'全民AI教育普及',text:'你妈都会用AI了。门槛降低意味着应用层市场炸了。',effects:{fame:3,ai_skill:3,work_skill:2},tone:'positive',type:'passive'},
+  {id:'s4',once:true,title:'AI相关立法正式通过',text:'政府出台了AI行业的法律框架。规则明确了，但合规成本也上来了。',effects:{ai_skill:2,money:-2,mood:2},tone:'positive',type:'passive'},
+  {id:'s5',once:true,title:'全球经济收缩',text:'创新预算在所有公司被优先砍掉。"先活下来再说。"',effects:{money:-6,mood:-5,influence:-3},tone:'negative',type:'passive'},
   {id:'s6',title:'社会AI恐慌蔓延',text:'"AI会不会取代我？"从专业讨论变成社会焦虑。',effects:{mood:-7,fame:-3},tone:'negative',type:'passive'},
-  {id:'s7',title:'科技股暴跌',text:'你买的AI概念股跌了40%。账面浮亏让你心疼。',effects:{money:-8,mood:-6},tone:'negative',type:'passive'},
+  {id:'s7',once:true,title:'科技股暴跌',text:'你买的AI概念股跌了40%。账面浮亏让你心疼。',effects:{money:-8,mood:-6},tone:'negative',type:'passive'},
   {id:'s8',title:'AI替代岗位讨论登上热搜',text:'亲戚朋友开始频繁问你"AI会不会让你失业"。你不知道怎么回答。',effects:{mood:-5},tone:'negative',type:'passive'},
-  {id:'s9',title:'房租大幅上涨',text:'房东说下个月起涨20%。你要么接受，要么搬家。',tone:'negative',type:'choice',dilemma:true,choices:[
+  {id:'s9',once:true,title:'房租大幅上涨',text:'房东说下个月起涨20%。你要么接受，要么搬家。',tone:'negative',type:'choice',dilemma:true,choices:[
     {label:'咬牙接受',desc:'稳定压倒一切',apply:function(){return{effects:{money:-6,mood:-3},text:'你续了约。每个月多出来的钱让你开始认真看储蓄余额。'};}},
     {label:'搬到更远更便宜的地方',desc:'通勤时间翻倍',apply:function(){return{effects:{money:3,energy:-4,mood:-2,ai_skill:2},text:'你搬了。每天多出一小时在地铁上，你开始听AI播客——也许是意外的收获。'};}},
   ]},
@@ -266,7 +266,7 @@ function renderEventChoice(){var ev=STATE._eventQueue[STATE._eventIndex];var dta
 function renderMajorEvent(){var ev=STATE._currentMajor;$app.innerHTML=renderTopBar()+'<div class="main-area"><div class="card event-card major"><div class="card-title">⚡ 重大事件</div><div class="card-body"><p style="font-weight:600;font-size:16px;color:#1a1a2e;margin-bottom:8px">'+ev.title+'</p><p>'+ev.text.replace(/\n/g,'<br>')+'</p></div></div><button class="btn btn-primary" onclick="G.toBranch()">面对抉择 →</button></div>';}
 function renderBranch(){var ev=STATE._currentMajor;var btns='';for(var i=0;i<ev.branches.length;i++){btns+='<button class="btn" onclick="G.chooseBranch('+i+')"><div class="btn-label">'+ev.branches[i].label+'</div><div class="btn-desc">'+ev.branches[i].desc+'</div></button>';}$app.innerHTML=renderTopBar()+'<div class="main-area"><div class="card event-card major"><div class="card-title">⚡ '+ev.title+'</div><div class="card-body"><p>你必须做出选择：</p></div></div><div class="btn-group">'+btns+'</div></div>';}
 function renderSummary(){var goEnd=STATE._pendingEnding||checkCriticalEnding()||STATE.quarter>=8;$app.innerHTML=renderTopBar()+'<div class="main-area">'+(STATE._branchResult?'<div class="card"><div class="card-body"><p>'+STATE._branchResult.replace(/\n/g,'<br>')+'</p></div></div>':'')+'<button class="btn btn-primary" onclick="'+(goEnd?'G.toEnding()':'G.nextQuarter()')+'">'+(goEnd?'查看结局 →':'进入下一季度 →')+'</button></div>';}
-function renderEnding(){var ending=STATE._pendingEnding?(ENDINGS.find(function(e){return e.id===STATE._pendingEnding;})||determineEnding()):determineEnding();var s=STATE.stats;var sh='';for(var k in STAT_META){if(!STAT_META.hasOwnProperty(k))continue;var m=STAT_META[k];var v=clamp(s[k],0,100);sh+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:12px;min-width:50px">'+m.icon+m.label+'</span><div style="flex:1;height:6px;background:#FFF0F3;border-radius:3px;overflow:hidden"><div style="width:'+v+'%;height:100%;background:'+m.color+';border-radius:3px"></div></div><span style="font-size:11px;color:#999;min-width:22px;text-align:right">'+v+'</span></div>';}var mj=STATE.eventLog.filter(function(e){return e.major;});var tl=mj.length?'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #FFF0F3"><div style="font-size:13px;color:#888;margin-bottom:6px">📜 经历的重大事件</div>'+mj.map(function(e){return'<div style="font-size:13px;color:#666;margin-bottom:3px">Q'+e.q+' · '+e.title+'</div>';}).join('')+'</div>':'';var ac={};STATE.actionHistory.forEach(function(a){ac[a]=(ac[a]||0)+1;});var top=Object.entries(ac).sort(function(a,b){return b[1]-a[1];}).slice(0,3).map(function(x){var a=ACTIONS.find(function(aa){return aa.id===x[0];});return a?a.label+'×'+x[1]:'';}).filter(Boolean).join('、');$app.innerHTML='<div class="main-area" style="padding-top:24px"><div class="card ending-card"><div style="font-size:36px;margin-bottom:8px">'+getAvatar()+'</div><div style="font-size:14px;color:#888;margin-bottom:4px">'+esc(STATE.playerName)+' 的结局</div><div class="ending-title">'+ending.title+'</div><div class="ending-text">'+ending.text.replace(/\n/g,'<br>')+'</div><div class="ending-tags">'+(ending.tags||[]).map(function(t){return'<span class="ending-tag">#'+t+'</span>';}).join('')+'</div></div><div class="card" style="margin-top:8px"><div class="card-title">📊 最终状态</div><div class="card-body">'+sh+(top?'<div style="margin-top:8px;font-size:13px;color:#888">最常做的事：'+top+'</div>':'')+tl+'</div></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-primary" onclick="G.restart()" style="flex:1">再来一次</button><button class="share-btn" onclick="G.share()" style="flex:1">分享结局</button></div></div>';}
+function renderEnding(){var ending=STATE._pendingEnding?(ENDINGS.find(function(e){return e.id===STATE._pendingEnding;})||determineEnding()):determineEnding();var s=STATE.stats;var sh='';for(var k in STAT_META){if(!STAT_META.hasOwnProperty(k))continue;var m=STAT_META[k];var v=clamp(s[k],0,100);sh+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:12px;min-width:50px">'+m.icon+m.label+'</span><div style="flex:1;height:6px;background:#FFF0F3;border-radius:3px;overflow:hidden"><div style="width:'+v+'%;height:100%;background:'+m.color+';border-radius:3px"></div></div><span style="font-size:11px;color:#999;min-width:22px;text-align:right">'+v+'</span></div>';}var mj=STATE.eventLog.filter(function(e){return e.major;});var tl=mj.length?'<div style="margin-top:12px;padding-top:12px;border-top:1px solid #FFF0F3"><div style="font-size:13px;color:#888;margin-bottom:6px">📜 经历的重大事件</div>'+mj.map(function(e){return'<div style="font-size:13px;color:#666;margin-bottom:3px">Q'+e.q+' · '+e.title+'</div>';}).join('')+'</div>':'';var ac={};STATE.actionHistory.forEach(function(a){ac[a]=(ac[a]||0)+1;});var top=Object.entries(ac).sort(function(a,b){return b[1]-a[1];}).slice(0,3).map(function(x){var a=ACTIONS.find(function(aa){return aa.id===x[0];});return a?a.label+'×'+x[1]:'';}).filter(Boolean).join('、');$app.innerHTML='<div class="main-area" style="padding-top:24px"><div class="card ending-card"><div style="font-size:36px;margin-bottom:8px">'+getAvatar()+'</div><div style="font-size:14px;color:#888;margin-bottom:4px">'+esc(STATE.playerName)+' 的结局</div><div class="ending-title">'+ending.title+'</div><div class="ending-text">'+ending.text.replace(/\n/g,'<br>')+'</div><div class="ending-tags">'+(ending.tags||[]).map(function(t){return'<span class="ending-tag">#'+t+'</span>';}).join('')+'</div></div><div class="card" style="margin-top:8px"><div class="card-title">📊 最终状态</div><div class="card-body">'+sh+(top?'<div style="margin-top:8px;font-size:13px;color:#888">最常做的事：'+top+'</div>':'')+tl+'</div></div><div style="margin-top:12px"><button class="btn btn-primary" onclick="G.restart()" style="width:100%">再来一次</button></div></div>';}
 function startGame(){initStats();STATE.gender='';STATE.playerName='';STATE.playerBio='';STATE.phase='profile';render();}
 function setGender(g){STATE.gender=g;document.querySelectorAll('.gender-btn').forEach(function(b){b.classList.remove('selected');});if(event&&event.currentTarget)event.currentTarget.classList.add('selected');updateProfileBtn();}
 function updateProfileBtn(){var btn=document.querySelector('.btn-primary');if(btn){if(STATE.gender&&STATE.playerName.trim())btn.classList.remove('btn-disabled');else btn.classList.add('btn-disabled');}}
@@ -301,7 +301,7 @@ function confirmActions(){
   if(didFame&&STATE.stats.fame>=60)STATE.stats.fame=Math.max(3,STATE.stats.fame-1);
   if(checkCriticalEnding()){STATE.phase='ending';render();return;}
   var numEv=1+Math.floor(Math.random()*3);
-  var queue=[];for(var ei=0;ei<numEv;ei++){var ev=pickNormalEvent();if(ev)queue.push(ev);}
+  var queue=[],usedThisQ={};for(var ei=0;ei<numEv;ei++){var ev=pickNormalEvent(usedThisQ);if(ev){queue.push(ev);usedThisQ[ev.id]=true;if(ev.once)STATE._usedOnceEvents[ev.id]=true;}}
   STATE._eventQueue=queue;STATE._eventIndex=0;
   STATE._currentMajor=pickMajorEvent();
   if(STATE._currentMajor)STATE.eventLog.push({q:STATE.quarter,title:STATE._currentMajor.title,major:true});
@@ -341,9 +341,8 @@ function toEnding(){STATE.phase='ending';render();}
 function restart(){STATE.phase='start';render();}
 function showTip(key){var m=STAT_META[key];if(!m)return;STATE.showTooltip=m;var old=document.querySelector('.tooltip-overlay');if(old)old.remove();var div=document.createElement('div');div.innerHTML=renderTooltipHTML();if(div.firstElementChild)document.body.appendChild(div.firstElementChild);}
 function closeTooltip(){STATE.showTooltip=null;var el=document.querySelector('.tooltip-overlay');if(el)el.remove();}
-function share(){var ending=STATE._pendingEnding?(ENDINGS.find(function(e){return e.id===STATE._pendingEnding;})||determineEnding()):determineEnding();var text='【AI大跃进生存模拟器】\n'+STATE.playerName+'的结局：'+ending.title+'\n'+(ending.tags||[]).map(function(t){return'#'+t;}).join(' ')+'\n\n来测测你在AI时代会走向什么结局？';if(navigator.share)navigator.share({title:'AI大跃进生存模拟器',text:text}).catch(function(){});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){alert('结局已复制到剪贴板！');}).catch(function(){alert(text);});else alert(text);}
 
-function pickNormalEvent(){
+function pickNormalEvent(usedThisQuarter){
   var q=STATE.quarter,s=STATE.stats,w=getEventWeights(q),phase=q<=2?'early':(q<=5?'mid':'late');
   var allPools=q<4?[PERSONAL_EVENTS,COMPANY_EVENTS,INDUSTRY_EVENTS]:[PERSONAL_EVENTS,COMPANY_EVENTS,INDUSTRY_EVENTS,SOCIAL_EVENTS];
   var poolWeights=q<4?[w.personal,w.company,w.industry]:[w.personal,w.company,w.industry,w.social];
@@ -352,6 +351,8 @@ function pickNormalEvent(){
     var pool=allPools[pi];var pw=poolWeights[pi];
     for(var ei=0;ei<pool.length;ei++){
       var ev=pool[ei];
+      if(usedThisQuarter[ev.id])continue;
+      if(ev.once&&STATE._usedOnceEvents[ev.id])continue;
       if(ev.condition&&!ev.condition(s))continue;
       if(ev.requireFlag&&!STATE.flags[ev.requireFlag])continue;
       if(ev.phase&&ev.phase!==phase)continue;
@@ -361,7 +362,7 @@ function pickNormalEvent(){
       candidates.push({ev:ev,weight:weight});
     }
   }
-  if(candidates.length===0)return PERSONAL_EVENTS[0];
+  if(candidates.length===0)return null;
   var totalWeight=0;for(var ci=0;ci<candidates.length;ci++)totalWeight+=candidates[ci].weight;
   var r=Math.random()*totalWeight;
   for(var ci2=0;ci2<candidates.length;ci2++){r-=candidates[ci2].weight;if(r<=0)return candidates[ci2].ev;}
@@ -383,6 +384,6 @@ function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 function shuffle(arr){for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=arr[i];arr[i]=arr[j];arr[j]=t;}return arr;}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-window.G={startGame:startGame,setGender:setGender,updateName:updateName,updateBio:updateBio,randomName:randomName,confirmProfile:confirmProfile,toAction:toAction,backToIntro:backToIntro,toggleAction:toggleAction,confirmActions:confirmActions,nextEvent:nextEvent,chooseEvent:chooseEvent,toBranch:toBranch,chooseBranch:chooseBranch,nextQuarter:nextQuarter,toEnding:toEnding,restart:restart,share:share,showTip:showTip,closeTooltip:closeTooltip};
+window.G={startGame:startGame,setGender:setGender,updateName:updateName,updateBio:updateBio,randomName:randomName,confirmProfile:confirmProfile,toAction:toAction,backToIntro:backToIntro,toggleAction:toggleAction,confirmActions:confirmActions,nextEvent:nextEvent,chooseEvent:chooseEvent,toBranch:toBranch,chooseBranch:chooseBranch,nextQuarter:nextQuarter,toEnding:toEnding,restart:restart,showTip:showTip,closeTooltip:closeTooltip};
 render();
 })();
