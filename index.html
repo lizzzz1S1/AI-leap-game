@@ -49,6 +49,13 @@ html, body {
   font-size: 12px; font-weight: 600; white-space: nowrap;
 }
 
+.topbar-tags {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; padding: 0 2px;
+}
+.topbar-tag {
+  font-size: 11px; background: #FFF0F3; color: #CC3355; border-radius: 8px;
+  padding: 2px 8px; border: 1px solid #FFE0E6; white-space: nowrap;
+}
 .stats-list { display: flex; flex-direction: column; gap: 5px; }
 .stat-row {
   display: flex; align-items: center; gap: 6px;
@@ -288,21 +295,26 @@ html, body {
   font-size: 22px; font-weight: 700; color: #1a1a2e; margin-bottom: 24px;
   text-align: center;
 }
-.gender-select {
-  display: flex; gap: 20px; justify-content: center; margin-bottom: 28px;
+.avatar-grid {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 16px;
 }
-.gender-btn {
-  width: 72px; height: 72px; border-radius: 50%;
-  border: 2.5px solid #FFE0E6; background: #FFF5F7;
-  font-size: 32px; cursor: pointer;
+.avatar-btn {
+  width: 48px; height: 48px; border-radius: 12px;
+  border: 2px solid #FFE0E6; background: #FFF5F7;
+  font-size: 24px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.15s;
 }
-.gender-btn.selected {
+.avatar-btn.selected {
   border-color: #FF2442; background: #FFE8EC;
-  box-shadow: 0 0 0 4px rgba(255,36,66,0.12);
+  box-shadow: 0 0 0 3px rgba(255,36,66,0.15);
+  transform: scale(1.1);
 }
-.gender-btn:active { transform: scale(0.95); }
+.avatar-btn:active { transform: scale(0.9); }
+.avatar-btn.dice-avatar {
+  background: linear-gradient(135deg, #FF2442, #FF6680);
+  border-color: #FF2442; color: white;
+}
 .profile-field { margin-bottom: 18px; }
 .profile-field label {
   display: block; font-size: 14px; color: #888; margin-bottom: 6px; font-weight: 500;
