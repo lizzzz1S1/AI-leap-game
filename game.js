@@ -81,7 +81,7 @@ const PERSONAL_EVENTS=[
   {id:'p5',once:true,title:'一位前辈开始带你',text:'TA教你怎么判断——什么值得做，什么是噪音。',effects:{ai:4,career:4,mood:6},hiddenFx:{positioning:2},tone:'positive',type:'passive',actionTrigger:['social'],setFlag:'has_mentor'},
   {id:'p6',title:'睡了个久违的好觉',text:'十点上床，七点醒来。早上出门时连路上的树都比平时好看了。',effects:{energy:10,mood:8},tone:'positive',type:'passive',actionTrigger:['rest'],condition:function(s){return s.energy<=50;}},
   {id:'p7',title:'想清楚了一件事',text:'不是AI的问题，也不是工作的问题。是关于你到底想成为什么样的人。',effects:{mood:8,career:2},hiddenFx:{survival:4},tone:'positive',type:'passive',actionTrigger:['think','rest']},
-  {id:'p8',title:'老板夸你方案写得好',text:'不是因为AI，是因为你逻辑清晰、表达精准。基本功被看到了。',effects:{career:5,mood:4},tone:'positive',type:'passive'},
+  {id:'p8',title:'老板夸你方案写得好',text:'不是因为AI，是因为你逻辑清晰、表达精准。基本功被看到了。',effects:{career:5,mood:4},tone:'positive',type:'passive',condition:function(s){return s.career>=25;},actionTrigger:['work']},
   {id:'p9',once:true,title:'第一次做出完整可用Demo',text:'从想法到能跑的产品，独立完成。',effects:{ai:6,mood:6,career:3},tone:'positive',type:'passive',condition:function(s){return s.ai>=25;}},
   {id:'p10',once:true,title:'有人找你做AI副业',text:'朋友的公司需要AI咨询，愿意付费。但你知道公司有严格的竞业和外部咨询禁令。',tone:'positive',type:'choice',actionTrigger:['ai'],condition:function(s){return s.ai>=30;},choices:[
     {label:'接！赚外快',desc:'应该不会被发现吧…',apply:function(){return{effects:{},text:'两周后，公司合规部门找你谈话。外部咨询属于严重违规，直接解除劳动合同。',setFlag:'fired_compliance',directEnding:'fired'};}},
@@ -232,16 +232,16 @@ var ENDINGS=[
   {id:'phoenix',priority:3,condition:function(s){return STATE.flags.companycollapsed&&(s.ai>=50||s.career>=40);},title:'🔥 逆境中的重启者',text:'变化中最有价值的能力，是在任何环境下都能找到自己的位置。',tags:['抗脆弱']},
   {id:'org_victim',priority:3,condition:function(s){return STATE.flags.companycollapsed;},title:'🏚️ 寻找新支点的人',text:'当外部环境剧烈变化时，多一个支撑点就多一份从容。',tags:['多元发展']},
   {id:'wave_rider',priority:4,condition:function(s){return s.ai>=75&&STATE.hidden.positioning>=20;},title:'🏄 浪潮驾驭者',text:'你不是风口的游客，而是少数真正理解风为什么吹、会吹向哪里的人。',tags:['技术深耕','长期主义'],hint:'AI力很高！继续深耕'},
-  {id:'org_king',priority:4,condition:function(s){return s.career>=70&&s.ai>=30&&!STATE.flags.companycollapsed;},title:'⚗️ 组织王者',text:'你能把AI变成组织里真正能用的东西。',tags:['组织生存型','技术落地'],hint:'职场力很强！'},
+  {id:'org_king',priority:4,condition:function(s){return s.career>=70&&s.ai>=25&&!STATE.flags.companycollapsed;},title:'⚗️ 组织王者',text:'你不是最懂AI的人，但你是最懂怎么让AI在组织里跑起来的人。\n\n推动预算、搞定老板、协调团队、落地项目——这些事情AI替代不了，而你做得比谁都好。',tags:['组织推动者','业务落地'],hint:'职场力超强！'},
   {id:'creator',priority:4,condition:function(s){return s.ai>=65&&s.mood>=50;},title:'🎨 AI时代独立创作者',text:'你把AI当创作杠杆，在组织之外长出了自己的生态位。',tags:['独立生态位'],hint:'AI力+好心态！'},
-  {id:'human_ai',priority:4,condition:function(s){return(s.ai+s.career)>=100&&s.mood>=50;},title:'🤝 人机协作者',text:'你找到了和AI最好的协作方式，彼此成就。',tags:['人机协作'],hint:'双修路线！职场+AI都需要'},
+  {id:'human_ai',priority:4,condition:function(s){return s.ai>=50&&s.career>=40&&s.mood>=45;},title:'🤝 人机协作者',text:'你和AI形成了一种默契——你提供判断力、创造力和同理心，AI提供速度、精度和规模。\n\n你的产出质量是纯人类或纯AI都达不到的。这不是替代，是共生。',tags:['人机共生','深度融合'],hint:'AI力+职场力+好心态！'},
   {id:'hermit',priority:4,condition:function(s){return s.mood>=75&&s.energy>=70;},title:'🏔️ 赛博隐士',text:'你没成为最亮的人，但成为了少数没把自己弄丢的人。',tags:['节奏守护型'],hint:'心态和体力都很棒！'},
   {id:'trad_master',priority:4,condition:function(s){return s.career>=65&&s.ai<25;},title:'🏛️ 传统技能坚守者',text:'潮水退去后，你依然站在那里。',tags:['基本功','反潮流'],hint:'职场力超强但AI力低'},
   {id:'skipped',priority:5,condition:function(s){return s.ai<=15&&s.career<=20;},title:'👤 还在寻找方向的人',text:'每个人都有自己的节奏，找到方向比跑得快更重要。',tags:['探索中']},
   {id:'survivor',priority:99,condition:function(){return true;},title:'🌱 稳态生存者',text:'在一年变三次的行业里，"稳稳地活着"就是被低估的胜利。',tags:['稳态型']},
 ];
 
-var QUARTER_NARRATIONS=['','2026年Q1。AI的发展速度超过了所有人的预期。每家公司都在谈AI转型。\n\n你是一名大厂打工人，老板说"每个人都要用起来"。','2026年Q2。有人因为AI项目脱颖而出，有人在思考自己的定位。\n\n变化和机会并存。','2026年Q3。行业开始分化。有人卷技术，有人卷品牌，有人卷创业。\n\n选择比努力重要。','2026年Q4。年终总结季。回顾这一年，AI从概念走向落地，有人已经跑出了成果，有人还在摸索方向。\n\n你的AI成果清单上写了什么？','2027年Q1。去年的"前沿"已变成"入门"。技术迭代的速度超出所有人的预期。','2027年Q2。行业进入深水区。理性与热情交织，方向感变得更加重要。','2027年Q3。你开始思考：什么能力是不会随技术迭代而贬值的？','2027年Q4。最后一个季度。为自己的故事写结尾。'];
+var QUARTER_NARRATIONS=['','2026年Q1。AI的发展速度超过了所有人的预期。每家公司都在谈AI转型。\n\n你是一名大厂打工人，老板说"每个人都要用起来"。','2026年Q2。有人因为AI项目脱颖而出，有人在思考自己的定位。\n\n变化和机会并存。','2026年Q3。行业开始分化。有人卷技术，有人卷品牌，有人卷创业。\n\n选择比努力重要。','2026年Q4。年终总结里要写"AI相关成果"。真的有成果吗？','2027年Q1。去年的"前沿"已变成"入门"。技术迭代的速度超出所有人的预期。你开始思考：什么能力是不会随技术迭代而贬值的？','2027年Q2。行业进入深水区。理性与热情交织，方向感变得更加重要。','2027年Q3。技术和时代都在发生巨变。','2027年Q4。最后一个季度。为自己的故事写结尾。'];
 
 // ===== 结局预测函数 =====
 function predictEnding(){
@@ -252,11 +252,11 @@ function predictEnding(){
   if(s.money<=12) return{icon:'⚠️',text:'资源告急！需要打工赚钱',color:'#dc2626'};
   // 正面预测
   if(s.ai>=55&&h.positioning>=12) return{icon:'🏄',text:'你正在走向「浪潮驾驭者」— 继续深耕AI！',color:'#FF2442'};
-  if(s.career>=55&&s.ai>=25) return{icon:'⚗️',text:'你正在走向「组织王者」— 职场+AI双修路线！',color:'#8B7EC8'};
+  if(s.career>=55&&s.ai>=20) return{icon:'⚗️',text:'你正在走向「组织王者」— 组织推动力拉满！',color:'#8B7EC8'};
   if(s.ai>=50&&s.mood>=50) return{icon:'🎨',text:'你正在走向「独立创作者」— AI力+好心态！',color:'#FF6680'};
   if(s.mood>=65&&s.energy>=60) return{icon:'🏔️',text:'你正在走向「赛博隐士」— 内心平静是最大的奢侈',color:'#66BB88'};
   if(s.career>=50&&s.ai<20) return{icon:'🏛️',text:'你正在走向「传统坚守者」— 要不要学点AI？',color:'#FFaa44'};
-  if((s.ai+s.career)>=75&&s.mood>=45) return{icon:'🤝',text:'你正在走向「人机协作者」— 双修路线不错！',color:'#FF8866'};
+  if(s.ai>=40&&s.career>=30&&s.mood>=45) return{icon:'🤝',text:'你正在走向「人机协作者」— AI力+职场力+好心态的黄金三角！',color:'#FF8866'};
   if(h.survival>=20) return{icon:'🔄',text:'生存韧性在积累 — 思考和学习在默默发力',color:'#66BB88'};
   // 中性
   return{icon:'🌱',text:'继续探索，你的故事还在展开…',color:'#999'};
