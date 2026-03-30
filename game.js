@@ -32,7 +32,7 @@ function initStats(){
   var energyFinal=clamp(energyBase+randInt(-5,5),20,80);
   var moodFinal=clamp(moodBase+randInt(-5,5),20,80);
   STATE.stats={career:randInt(15,35),ai:randInt(5,30),money:randInt(5,30),energy:energyFinal,mood:moodFinal};
-  STATE.hidden={positioning:0,survival:10};STATE.flags={};STATE.actionHistory=[];STATE.eventLog=[];STATE.quarter=0;STATE.selectedActions=[];
+  STATE.hidden={positioning:0,survival:0};STATE.flags={};STATE.actionHistory=[];STATE.eventLog=[];STATE.quarter=0;STATE.selectedActions=[];
   STATE._eventQueue=[];STATE._eventIndex=0;STATE._currentMajor=null;STATE._branchResult=null;STATE._pendingEnding=null;STATE._thisQuarterActions=[];
   STATE._initTags=generateInitTags(STATE.stats);STATE._initBio='';STATE._usedOnceEvents={};
 }
@@ -42,14 +42,14 @@ function generateInitTags(s){
   else if(s.career<=18)tags.push({label:'😵 职场小白',desc:'一切从零开始学习',reason:'初始职场力仅'+s.career});
   if(s.ai>=25)tags.push({label:'🤖 AI原住民',desc:'出生时手边就有ChatGPT',reason:'初始AI力'+s.ai});
   else if(s.ai<=8)tags.push({label:'🔌 AI绝缘体',desc:'以为GPT是一种零食',reason:'初始AI力仅'+s.ai});
-  if(s.energy>=90)tags.push({label:'⚡ 精力怪物',desc:'能连续开会12小时不累',reason:'初始体力'+s.energy});
-  else if(s.energy<=68)tags.push({label:'😪 电量焦虑',desc:'出门先确认咖啡库存',reason:'初始体力仅'+s.energy});
-  if(s.mood>=90)tags.push({label:'🌈 天生乐观',desc:'什么都打不倒的乐天派',reason:'初始心态'+s.mood});
-  else if(s.mood<=68)tags.push({label:'🌧️ 忧虑体质',desc:'晴天也想带把伞',reason:'初始心态仅'+s.mood});
+  if(s.energy>=72)tags.push({label:'⚡ 精力怪物',desc:'能连续开会12小时不累',reason:'初始体力'+s.energy});
+  else if(s.energy<=45)tags.push({label:'😪 电量焦虑',desc:'出门先确认咖啡库存',reason:'初始体力仅'+s.energy});
+  if(s.mood>=68)tags.push({label:'🌈 天生乐观',desc:'什么都打不倒的乐天派',reason:'初始心态'+s.mood});
+  else if(s.mood<=42)tags.push({label:'🌧️ 忧虑体质',desc:'晴天也想带把伞',reason:'初始心态仅'+s.mood});
   if(s.money>=25)tags.push({label:'💰 小有积蓄',desc:'裸辞能撑三个月',reason:'初始资源'+s.money});
   else if(s.money<=10)tags.push({label:'🫗 月光战士',desc:'工资到账就是还款日',reason:'初始资源仅'+s.money});
   if(s.career>=25&&s.ai>=20)tags.push({label:'⚖️ 双修选手',desc:'两手都抓，至少不空',reason:'职场'+s.career+'+AI'+s.ai});
-  if(s.energy>=85&&s.mood>=85)tags.push({label:'✨ 满状态出发',desc:'此刻的你是最好的你',reason:'体力'+s.energy+'+心态'+s.mood});
+  if(s.energy>=68&&s.mood>=65)tags.push({label:'✨ 满状态出发',desc:'此刻的你是最好的你',reason:'体力'+s.energy+'+心态'+s.mood});
   if(tags.length===0)tags.push({label:'🎯 普通但自信',desc:'没有突出特点就是最大特点',reason:'各项中规中矩'});
   return tags.slice(0,4);
 }
@@ -58,19 +58,19 @@ const STAT_META={
   career:{icon:'💼',label:'职场力',color:'#8B7EC8',tip:'职场综合实力：工作能力+公司影响力。决定你在组织中的位置'},
   ai:{icon:'🤖',label:'AI力',color:'#FF6680',tip:'AI综合实力：技术能力+行业影响力。决定你在AI浪潮中的位置'},
   money:{icon:'💰',label:'资源',color:'#66BB88',tip:'存款和抗风险能力。归零=游戏结束'},
-  energy:{icon:'⚡',label:'体力',color:'#FF9944',tip:'身体和精神能量。归零=游戏结束。每季度自然回复+5'},
+  energy:{icon:'⚡',label:'体力',color:'#FF9944',tip:'身体和精神能量。归零=游戏结束。每季度自然恢复+3'},
   mood:{icon:'❤️',label:'心态',color:'#FF4466',tip:'情绪稳定性。归零=游戏结束。社交和休息是主要恢复手段'},
 };
 
 // ===== 5个行动，每个都有独特价值 =====
 const ACTIONS=[
-  {id:'work',label:'💼 打工搬砖',desc:'赚钱+职场力 → 走向「组织王者」',effects:{money:8,career:5,energy:-4,mood:-2},hiddenFx:{survival:1},
-    bonus:function(s){var b={};if(s.career>=50)b.money=3;return b;}},
-  {id:'ai',label:'🤖 AI探索',desc:'学习+实践+产出，AI力唯一来源',effects:{ai:6,career:1,money:1,energy:-6,mood:-2},hiddenFx:{positioning:1},
-    bonus:function(s){var b={};if(s.ai>=40){b.career=2;b.money=1;}if(s.ai>=60){b.career=1;b.money=2;}return b;}},
-  {id:'social',label:'🤝 社交经营',desc:'心态恢复+职场力 → 保持好心态',effects:{career:3,mood:6,energy:-2,money:-1},hiddenFx:{survival:1,positioning:1}},
-  {id:'rest',label:'🧘 休息充电',desc:'体力恢复主要手段 → 防止体力归零',effects:{energy:15,mood:6,money:-1},hiddenFx:{survival:2}},
-  {id:'think',label:'📚 学习思考',desc:'多维成长+心态 → 影响最终结局评判',effects:{career:2,ai:2,mood:4,energy:3},hiddenFx:{positioning:1,survival:5}},
+  {id:'work',label:'💼 打工搬砖',desc:'赚钱+职场力 → 走向「组织王者」',effects:{money:6,career:4,energy:-5,mood:-3},
+    bonus:function(s){var b={};if(s.career>=45)b.money=2;return b;}},
+  {id:'ai',label:'🤖 AI探索',desc:'学习+实践+产出，AI力唯一来源',effects:{ai:5,career:1,energy:-7,mood:-3},hiddenFx:{positioning:1},
+    bonus:function(s){var b={};if(s.ai>=35){b.career=1;b.money=1;}if(s.ai>=55){b.career=1;b.money=1;}return b;}},
+  {id:'social',label:'🤝 社交经营',desc:'心态恢复+职场力 → 保持好心态',effects:{career:2,mood:5,energy:-2,money:-1},hiddenFx:{positioning:1}},
+  {id:'rest',label:'🧘 休息充电',desc:'体力恢复主要手段 → 防止体力归零',effects:{energy:12,mood:5,money:-1}},
+  {id:'think',label:'📚 学习思考',desc:'深度思考+韧性积累 → 影响危机应对和最终结局',effects:{career:1,ai:1,mood:3,energy:2},hiddenFx:{positioning:1,survival:3}},
 ];
 // ===== 随机事件（精简版，适配5指标） =====
 const PERSONAL_EVENTS=[
@@ -111,6 +111,49 @@ const PERSONAL_EVENTS=[
     {label:'拒绝，专注当前',desc:'不为钱动摇',apply:function(){return{effects:{mood:3},hiddenFx:{survival:1},text:'现在需要的不是换地方。'};}},
     {label:'认真考虑跳槽',desc:'25%涨幅诱人',apply:function(s){if(s.ai>=45||s.career>=45)return{effects:{money:8,career:-5,mood:3},text:'你跳了。新公司待遇好，但一切从头证明。',setFlag:'jumped'};return{effects:{money:6,career:-8,mood:-3},text:'你跳了，但新公司比想象中复杂。',setFlag:'jumped'};}},
   ]},
+  // ===== V4 新增互联网打工人体感事件 =====
+  {id:'p22',title:'周末被拉进紧急对齐群',text:'周六下午，钉钉突然弹出一个128人的对齐群。你的心跳加速了。',effects:{energy:-6,mood:-5},tone:'negative',type:'passive'},
+  {id:'p23',title:'OKR又要重写了',text:'季度过半，老板说方向要调整，OKR重新对齐。你上个月的产出白费了。',effects:{mood:-7,career:-3,energy:-3},tone:'negative',type:'passive'},
+  {id:'p24',once:true,title:'你写的周报被老板转发到大群',text:'老板说"这个思路很好，大家可以参考"。虽然有点社死，但确实被看到了。',effects:{career:5,mood:4,ai:2},tone:'positive',type:'passive',condition:function(s){return s.career>=20;},actionTrigger:['work']},
+  {id:'p25',title:'又双叒叕改需求了',text:'产品经理说"就改一点点"。你看了一眼改动范围，沉默了。',effects:{energy:-5,mood:-6,career:2},tone:'negative',type:'passive',actionTrigger:['work']},
+  {id:'p26',once:true,title:'团建要去密室逃脱',text:'工作日下午的团建，老板说"放松一下"。',tone:'positive',type:'choice',choices:[
+    {label:'积极参与',desc:'难得和同事非工作互动',apply:function(){return{effects:{mood:6,energy:-2,career:2},text:'你发现那个沉默的后端同事原来这么有趣。'};}},
+    {label:'找借口溜了',desc:'宝贵的半天不想浪费',apply:function(){return{effects:{energy:3,mood:2},text:'你用这半天清了积压一周的TODO。'};}},
+  ]},
+  {id:'p27',title:'在工位上偷偷面试被发现',text:'只是接了个电话，但隔壁同事看了你一眼——戴耳机、压低声音、笑容有点假。',effects:{mood:-8,career:-3},tone:'negative',type:'passive',condition:function(s){return s.mood<=45;}},
+  {id:'p28',once:true,title:'你的代码/方案被新人质疑了',text:'新来的同事在Review里提了很多问题。有些确实有道理。',tone:'positive',type:'choice',choices:[
+    {label:'虚心接受，认真修改',desc:'对就是对',apply:function(){return{effects:{career:4,mood:3,ai:2},hiddenFx:{survival:2},text:'你发现自己确实有一些盲区。承认不足反而让你更受尊重。'};}},
+    {label:'据理力争',desc:'这些问题我都考虑过',apply:function(){return{effects:{career:2,mood:-3},text:'你赢了争论，但新同事之后再也没在Review里说话了。'};}},
+  ]},
+  {id:'p29',title:'凌晨发布出了线上事故',text:'你负责的服务挂了10分钟。虽然影响不大，但你需要写复盘报告。',effects:{career:-4,mood:-6,energy:-4},tone:'negative',type:'passive',actionTrigger:['work']},
+  {id:'p30',once:true,title:'朋友圈刷到前同事创业成功',text:'TA做的方向你当初也想过。现在TA在融B轮了。',tone:'negative',type:'choice',choices:[
+    {label:'真心祝福，继续自己的路',desc:'每个人的时区不同',apply:function(){return{effects:{mood:2},hiddenFx:{survival:2},text:'你给TA点了个赞，然后关掉手机继续写你的方案。'};}},
+    {label:'焦虑加倍，开始反思',desc:'我是不是错过了什么',apply:function(){return{effects:{mood:-8,energy:-3},text:'整个晚上你都在想"如果当初……"'};}},
+  ]},
+  {id:'p31',title:'咖啡因摄入量创新高',text:'今天第四杯美式。你已经分不清是困还是焦虑了。',effects:{energy:-3,mood:-2},tone:'negative',type:'passive',condition:function(s){return s.energy<=40;}},
+  {id:'p32',once:true,title:'你被安排做跨组协调',text:'两个组的方向有冲突，老板让你来协调。这是一个没有功劳只有苦劳的活。',tone:'negative',type:'choice',dilemma:true,condition:function(s){return s.career>=25;},choices:[
+    {label:'硬着头皮接',desc:'展现领导力的机会',apply:function(s){if(s.career>=35)return{effects:{career:6,energy:-6,mood:-3},text:'虽然两头受气，但最终方案落地了。老板记住了你。'};return{effects:{career:2,energy:-7,mood:-6},text:'夹在中间两头不是人。下次再也不接了。'};}},
+    {label:'找理由推掉',desc:'这个坑不能跳',apply:function(){return{effects:{career:-2,mood:2},text:'坑被另一个同事踩了。你松了口气，但老板似乎有点失望。'};}},
+  ]},
+  {id:'p33',title:'今天摸了一整天鱼',text:'打开了二十个网页，一行产出没有。但不知道为什么，心情好了一点。',effects:{energy:3,mood:4,career:-2},tone:'positive',type:'passive'},
+  {id:'p34',once:true,title:'你被邀请做内部分享',text:'HR找你做一场"AI工具应用"的内部分享。准备需要花时间。',tone:'positive',type:'choice',condition:function(s){return s.ai>=20;},choices:[
+    {label:'精心准备，好好讲',desc:'内部个人品牌很重要',apply:function(){return{effects:{career:5,ai:3,mood:4,energy:-5},text:'分享结束后好几个人加了你的钉钉。之后经常有人问你AI问题。'};}},
+    {label:'随便讲讲应付一下',desc:'不想花太多时间',apply:function(){return{effects:{career:1,energy:-2},text:'反响平平。你开始后悔没认真准备。'};}},
+  ]},
+  {id:'p35',title:'下班后的健身房时光',text:'虽然累，但跑完步出了一身汗，大脑清醒了很多。',effects:{energy:5,mood:5},tone:'positive',type:'passive',actionTrigger:['rest'],condition:function(s){return s.energy>=30;}},
+  {id:'p36',once:true,title:'你开始写个人博客/公众号',text:'不是为了流量，就是想把想法记录下来。',tone:'positive',type:'choice',condition:function(s){return s.ai>=15;},choices:[
+    {label:'坚持写，保持输出',desc:'输出是最好的学习',apply:function(){return{effects:{ai:4,mood:3,energy:-3},hiddenFx:{positioning:2,survival:1},text:'三个月后，你有了100个固定读者。不多，但都是真正在看的人。'};}},
+    {label:'写了两篇就放弃了',desc:'太累了顾不上',apply:function(){return{effects:{mood:-2},text:'草稿箱里躺着五篇没写完的文章。'};}},
+  ]},
+  {id:'p37',title:'食堂的饭越来越难吃了',text:'但你已经懒得出去吃了。',effects:{mood:-2},tone:'negative',type:'passive'},
+  {id:'p40',once:true,title:'深夜产品评审',text:'产品评审拉到了凌晨12点，你的方案被老板质疑："太保守了，有没有更大的想象力？"你知道他想要的是一个能讲故事的PPT，而不是你调研过的数据。',tone:'negative',type:'choice',dilemma:true,actionTrigger:['work'],condition:function(s){return s.career>=20;},choices:[
+    {label:'顺着他说，重做一版',desc:'大厂生存法则',apply:function(){return{effects:{career:4,mood:-5},hiddenFx:{positioning:1},text:'你做了一版"有想象力"的方案。老板很满意。你关掉电脑的时候觉得有点空。'};}},
+    {label:'坚持数据，花30分钟讲清楚',desc:'对的事情值得坚持',apply:function(){return{effects:{career:-2,mood:4},hiddenFx:{survival:2},text:'老板听完沉默了一会儿说"你说的有道理"。也可能只是客气。但你心里踏实了。'};}},
+  ]},
+  {id:'p41',once:true,title:'新来的实习生AI比你强',text:'应届生用Cursor两小时做完了你要做三天的竞品分析。leader在群里@了他。',effects:{mood:-7,ai:2},tone:'negative',type:'passive',condition:function(s){return s.ai<30;}},
+  {id:'p42',once:true,title:'体检报告几个指标飘红',text:'医生建议"注意休息、减少熬夜"。你把报告关掉，继续打开了飞书。',effects:{mood:-6,energy:-4},tone:'negative',type:'passive',condition:function(s){return s.energy<=35;}},
+  {id:'p38',once:true,title:'996了一个月，项目终于上线',text:'你贡献了核心模块。上线的那一刻，钉钉群里全是掌声表情。',effects:{career:6,mood:5,energy:-4,money:3},tone:'positive',type:'passive',actionTrigger:['work'],condition:function(s){return s.career>=20;}},
+  {id:'p39',once:true,title:'你用AI帮同事解决了一个卡了三天的问题',text:'同事说"你怎么十分钟就搞定了"。你微微一笑。',effects:{ai:3,career:4,mood:5},tone:'positive',type:'passive',actionTrigger:['ai'],condition:function(s){return s.ai>=20;}},
 ];
 const COMPANY_EVENTS=[
   {id:'c1',title:'领导注重AI实际落地效果',text:'团队开始关注AI工具的真实产出，而不是形式上的展示。',effects:{career:5,money:3,mood:4},tone:'positive',type:'passive',actionTrigger:['work','ai']},
@@ -137,6 +180,17 @@ const COMPANY_EVENTS=[
   {id:'c16',once:true,title:'你发现AI项目的数据有质量问题',text:'核心指标的统计口径可能有偏差，需要有人指出来。',tone:'negative',type:'choice',dilemma:true,phase:'mid',choices:[
     {label:'私下跟老板说',desc:'职业道德底线',apply:function(){if(STATE.flags.boss_shield)return{effects:{career:5,mood:5},text:'老板说："谢谢你告诉我。"'};return{effects:{career:-5,mood:-5},text:'老板说"我们会重新梳理。"虽然没有立即改变，但至少有人知道了。'};}},
     {label:'先观察一下',desc:'也许有更好的时机',apply:function(){return{effects:{mood:-6},text:'你决定先观察，但心里一直在想这件事。'};}},
+  ]},
+  // ===== V4 新增公司事件 =====
+  {id:'c17',title:'老板的老板突然来你工位',text:'VP走过来问你最近在做什么。你有30秒的时间。',tone:'positive',type:'choice',choices:[
+    {label:'清晰汇报，重点突出',desc:'提前想过elevator pitch',apply:function(s){if(s.career>=25)return{effects:{career:5,mood:4},text:'VP点了点头说"不错"。你的名字被记住了。'};return{effects:{career:2,mood:2},text:'说得磕磕绊绊，但VP还是听完了。'};}},
+    {label:'紧张到语无伦次',desc:'完全没准备',apply:function(){return{effects:{mood:-5,career:-2},text:'VP笑了笑走了。你想死的心都有了。'};}},
+  ]},
+  {id:'c18',once:true,title:'公司搬到了更偏的办公楼',text:'通勤时间从30分钟变成70分钟。但新工位比以前大。',effects:{energy:-4,mood:-3,money:2},tone:'negative',type:'passive'},
+  {id:'c19',once:true,title:'老板离职了',text:'带你最久的老板决定离开。新老板下周到任。一切要重新开始证明。',effects:{career:-5,mood:-6},tone:'negative',type:'passive'},
+  {id:'c20',once:true,title:'你被提名年度优秀员工',text:'虽然不确定能不能选上，但被提名本身就是认可。',tone:'positive',type:'choice',condition:function(s){return s.career>=30;},choices:[
+    {label:'写一份认真的自述材料',desc:'机会要争取',apply:function(s){if(s.career>=40)return{effects:{career:6,mood:5,money:3},text:'你选上了。发了一条低调的朋友圈。'};return{effects:{career:3,mood:2},text:'最终没选上，但过程中梳理了自己的成长。'};}},
+    {label:'随便写写，别太当回事',desc:'不想给自己太大压力',apply:function(){return{effects:{mood:2},text:'你没选上。有点小遗憾。'};}},
   ]},
 ];
 const INDUSTRY_EVENTS=[
@@ -183,13 +237,13 @@ const MAJOR_EVENTS={
   ]},
   ai_winter:{title:'🧊 AI行业进入深度调整期',text:'所有人都发现AI很好，但没有人知道怎么赚钱。\n\n投资放缓、项目缩编。',category:'industry',minQuarter:5,condition:function(){return !STATE.flags.aiindustryfrozen;},applyPassive:function(){STATE.flags.aiindustryfrozen=true;STATE.flags.ai_skill_nerf=true;},branches:[
     {label:'坚守AI等复苏',desc:'冬天总会过去',apply:function(){return{effects:{money:-5,mood:-4},hiddenFx:{positioning:3},text:'冬天离开的人，春天回不来了。'};}},
-    {label:'转向AI+传统行业',desc:'AI是工具，行业是根基',apply:function(){if(STATE.hidden.survival>=30)return{effects:{money:4,mood:2},text:'医疗、教育对AI的需求才刚开始。',directEnding:'cross_cycle'};return{effects:{mood:-5,money:-3},text:'跨行业需要时间积累，转型之路比预想的更长。',directEnding:'ai_stuck'};}},
+    {label:'转向AI+传统行业',desc:'AI是工具，行业是根基',apply:function(){if(STATE.hidden.survival>=20)return{effects:{money:4,mood:2},text:'医疗、教育对AI的需求才刚开始。',directEnding:'cross_cycle'};return{effects:{mood:-5,money:-3},text:'跨行业需要时间积累，转型之路比预想的更长。',directEnding:'ai_stuck'};}},
     {label:'回炉学第二技能',desc:'不把鸡蛋放一个篮子',apply:function(){return{effects:{money:-4,career:4},hiddenFx:{survival:8},text:'你开始认真学AI以外的东西。'};}},
   ]},
   war:{title:'🔥 地缘冲突升级，局势急剧紧张',text:'国际局势突然紧张，供应链受到冲击，不确定性陡增。\n\n你的日常、行业、计划——突然都不重要了。',category:'social',minQuarter:4,condition:function(){return !STATE.flags.warstarted&&trueRand(100)<35;},applyPassive:function(){STATE.flags.warstarted=true;STATE.flags.work_nerf=true;},branches:[
     {label:'进入国家体系',desc:'个人命运汇入集体',apply:function(s){if(s.energy>=25)return{effects:{energy:-8,mood:-4},text:'你报了名。',directEnding:'war_hero',setFlag:'joinedwar'};return{effects:{energy:-8,mood:-4},text:'你报了名，但体力已经透支……',directEnding:'war_drifter',setFlag:'joinedwar'};}},
     {label:'撤到安全区域',desc:'活着就是胜利',apply:function(){return{effects:{money:-8,mood:-6},hiddenFx:{survival:2},text:'你变卖了一些东西，离开了。',directEnding:'war_drifter'};}},
-    {label:'后方技术支援',desc:'用技能服务更大的事',apply:function(s){if(STATE.hidden.survival>=25||s.ai>=50||s.career>=40)return{effects:{career:4,money:3},text:'你的能力在后方反而更被需要。',directEnding:'war_support',setFlag:'joinedsupport'};return{effects:{mood:-5},text:'你想帮忙，但能力太窄了。',directEnding:'war_drifter'};}},
+    {label:'后方技术支援',desc:'用技能服务更大的事',apply:function(s){if(STATE.hidden.survival>=18||s.ai>=45||s.career>=35)return{effects:{career:4,money:3},text:'你的能力在后方反而更被需要。',directEnding:'war_support',setFlag:'joinedsupport'};return{effects:{mood:-5},text:'你想帮忙，但能力太窄了。',directEnding:'war_drifter'};}},
   ]},
   resource_crisis:{title:'⛽ 全球资源危机',text:'芯片断供、电价暴涨、数据中心限电。\n\nAI最依赖的算力，突然变成了奢侈品。',category:'social',minQuarter:4,condition:function(){return !STATE.flags.resourcecollapse&&trueRand(100)<40;},applyPassive:function(){STATE.flags.resourcecollapse=true;},branches:[
     {label:'缩减欲望，保基本盘',desc:'断舍离',apply:function(){return{effects:{money:-2,mood:1},text:'你发现很多东西你根本不需要。'};}},
@@ -227,16 +281,16 @@ var ENDINGS=[
   {id:'war_hero',priority:1,condition:function(s){return STATE.flags.warstarted&&STATE.flags.joinedwar&&s.energy>=25;},title:'🎖️ 战时功勋者',text:'当世界进入极端状态时，你没有退到旁观席。',tags:['时代亲历者']},
   {id:'war_support',priority:1,condition:function(s){return STATE.flags.warstarted&&STATE.flags.joinedsupport;},title:'🔧 后方建设者',text:'你的技能在另一个系统里重新有了意义。',tags:['通用生存力']},
   {id:'war_drifter',priority:1,condition:function(s){return STATE.flags.warstarted;},title:'🌊 时代洪流中的漂流者',text:'你准备应对的那个世界，和最终到来的这个世界，不是同一个。',tags:['宏观冲击']},
-  {id:'cross_cycle',priority:2,condition:function(s){return(STATE.flags.aiindustryfrozen||STATE.flags.resourcecollapse)&&STATE.hidden.survival>=35&&s.mood>=35;},title:'🔄 跨周期生存者',text:'押注行业和押注自己，是两回事。',tags:['多线程生存者']},
-  {id:'ai_stuck',priority:2,condition:function(s){return STATE.flags.aiindustryfrozen&&s.ai>=50&&STATE.hidden.survival<25;},title:'❄️ 等待春天的深耕者',text:'行业周期是客观规律，冬天积累的人往往在春天收获最多。',tags:['行业周期','蓄势待发']},
+  {id:'cross_cycle',priority:2,condition:function(s){return(STATE.flags.aiindustryfrozen||STATE.flags.resourcecollapse)&&STATE.hidden.survival>=25&&s.mood>=30;},title:'🔄 跨周期生存者',text:'押注行业和押注自己，是两回事。',tags:['多线程生存者']},
+  {id:'ai_stuck',priority:2,condition:function(s){return STATE.flags.aiindustryfrozen&&s.ai>=45&&STATE.hidden.survival<18;},title:'❄️ 等待春天的深耕者',text:'行业周期是客观规律，冬天积累的人往往在春天收获最多。',tags:['行业周期','蓄势待发']},
   {id:'phoenix',priority:3,condition:function(s){return STATE.flags.companycollapsed&&(s.ai>=50||s.career>=40);},title:'🔥 逆境中的重启者',text:'变化中最有价值的能力，是在任何环境下都能找到自己的位置。',tags:['抗脆弱']},
   {id:'org_victim',priority:3,condition:function(s){return STATE.flags.companycollapsed;},title:'🏚️ 寻找新支点的人',text:'当外部环境剧烈变化时，多一个支撑点就多一份从容。',tags:['多元发展']},
-  {id:'wave_rider',priority:4,condition:function(s){return s.ai>=75&&STATE.hidden.positioning>=20;},title:'🏄 浪潮驾驭者',text:'你不是风口的游客，而是少数真正理解风为什么吹、会吹向哪里的人。',tags:['技术深耕','长期主义'],hint:'AI力很高！继续深耕'},
-  {id:'org_king',priority:4,condition:function(s){return s.career>=70&&s.ai>=25&&!STATE.flags.companycollapsed;},title:'⚗️ 组织王者',text:'你不是最懂AI的人，但你是最懂怎么让AI在组织里跑起来的人。\n\n推动预算、搞定老板、协调团队、落地项目——这些事情AI替代不了，而你做得比谁都好。',tags:['组织推动者','业务落地'],hint:'职场力超强！'},
-  {id:'creator',priority:4,condition:function(s){return s.ai>=65&&s.mood>=50;},title:'🎨 AI时代独立创作者',text:'你把AI当创作杠杆，在组织之外长出了自己的生态位。',tags:['独立生态位'],hint:'AI力+好心态！'},
-  {id:'human_ai',priority:4,condition:function(s){return s.ai>=50&&s.career>=40&&s.mood>=45;},title:'🤝 人机协作者',text:'你和AI形成了一种默契——你提供判断力、创造力和同理心，AI提供速度、精度和规模。\n\n你的产出质量是纯人类或纯AI都达不到的。这不是替代，是共生。',tags:['人机共生','深度融合'],hint:'AI力+职场力+好心态！'},
-  {id:'hermit',priority:4,condition:function(s){return s.mood>=75&&s.energy>=70;},title:'🏔️ 赛博隐士',text:'你没成为最亮的人，但成为了少数没把自己弄丢的人。',tags:['节奏守护型'],hint:'心态和体力都很棒！'},
-  {id:'trad_master',priority:4,condition:function(s){return s.career>=65&&s.ai<25;},title:'🏛️ 传统技能坚守者',text:'潮水退去后，你依然站在那里。',tags:['基本功','反潮流'],hint:'职场力超强但AI力低'},
+  {id:'wave_rider',priority:4,condition:function(s){return s.ai>=60&&STATE.hidden.positioning>=15;},title:'🏄 浪潮驾驭者',text:'你不是风口的游客，而是少数真正理解风为什么吹、会吹向哪里的人。',tags:['技术深耕','长期主义'],hint:'AI力很高！继续深耕'},
+  {id:'org_king',priority:4,condition:function(s){return s.career>=55&&s.ai>=20&&!STATE.flags.companycollapsed;},title:'⚗️ 组织王者',text:'你不是最懂AI的人，但你是最懂怎么让AI在组织里跑起来的人。\n\n推动预算、搞定老板、协调团队、落地项目——这些事情AI替代不了，而你做得比谁都好。',tags:['组织推动者','业务落地'],hint:'职场力超强！'},
+  {id:'creator',priority:4,condition:function(s){return s.ai>=55&&s.mood>=45;},title:'🎨 AI时代独立创作者',text:'你把AI当创作杠杆，在组织之外长出了自己的生态位。',tags:['独立生态位'],hint:'AI力+好心态！'},
+  {id:'human_ai',priority:4,condition:function(s){return s.ai>=45&&s.career>=35&&s.mood>=40;},title:'🤝 人机协作者',text:'你和AI形成了一种默契——你提供判断力、创造力和同理心，AI提供速度、精度和规模。\n\n你的产出质量是纯人类或纯AI都达不到的。这不是替代，是共生。',tags:['人机共生','深度融合'],hint:'AI力+职场力+好心态！'},
+  {id:'hermit',priority:4,condition:function(s){return s.mood>=65&&s.energy>=60;},title:'🏔️ 赛博隐士',text:'你没成为最亮的人，但成为了少数没把自己弄丢的人。',tags:['节奏守护型'],hint:'心态和体力都很棒！'},
+  {id:'trad_master',priority:4,condition:function(s){return s.career>=55&&s.ai<20;},title:'🏛️ 传统技能坚守者',text:'潮水退去后，你依然站在那里。',tags:['基本功','反潮流'],hint:'职场力超强但AI力低'},
   {id:'skipped',priority:5,condition:function(s){return s.ai<=15&&s.career<=20;},title:'👤 还在寻找方向的人',text:'每个人都有自己的节奏，找到方向比跑得快更重要。',tags:['探索中']},
   {id:'survivor',priority:99,condition:function(){return true;},title:'🌱 稳态生存者',text:'在一年变三次的行业里，"稳稳地活着"就是被低估的胜利。',tags:['稳态型']},
 ];
@@ -251,13 +305,13 @@ function predictEnding(){
   if(s.mood<=25) return{icon:'⚠️',text:'心态危险！需要社交或休息来恢复',color:'#dc2626'};
   if(s.money<=12) return{icon:'⚠️',text:'资源告急！需要打工赚钱',color:'#dc2626'};
   // 正面预测
-  if(s.ai>=55&&h.positioning>=12) return{icon:'🏄',text:'你正在走向「浪潮驾驭者」— 继续深耕AI！',color:'#FF2442'};
-  if(s.career>=55&&s.ai>=20) return{icon:'⚗️',text:'你正在走向「组织王者」— 组织推动力拉满！',color:'#8B7EC8'};
-  if(s.ai>=50&&s.mood>=50) return{icon:'🎨',text:'你正在走向「独立创作者」— AI力+好心态！',color:'#FF6680'};
-  if(s.mood>=65&&s.energy>=60) return{icon:'🏔️',text:'你正在走向「赛博隐士」— 内心平静是最大的奢侈',color:'#66BB88'};
-  if(s.career>=50&&s.ai<20) return{icon:'🏛️',text:'你正在走向「传统坚守者」— 要不要学点AI？',color:'#FFaa44'};
-  if(s.ai>=40&&s.career>=30&&s.mood>=45) return{icon:'🤝',text:'你正在走向「人机协作者」— AI力+职场力+好心态的黄金三角！',color:'#FF8866'};
-  if(h.survival>=20) return{icon:'🔄',text:'生存韧性在积累 — 思考和学习在默默发力',color:'#66BB88'};
+  if(s.ai>=45&&h.positioning>=10) return{icon:'🏄',text:'你正在走向「浪潮驾驭者」— 继续深耕AI！',color:'#FF2442'};
+  if(s.career>=45&&s.ai>=15) return{icon:'⚗️',text:'你正在走向「组织王者」— 组织推动力拉满！',color:'#8B7EC8'};
+  if(s.ai>=42&&s.mood>=45) return{icon:'🎨',text:'你正在走向「独立创作者」— AI力+好心态！',color:'#FF6680'};
+  if(s.mood>=55&&s.energy>=50) return{icon:'🏔️',text:'你正在走向「赛博隐士」— 内心平静是最大的奢侈',color:'#66BB88'};
+  if(s.career>=45&&s.ai<18) return{icon:'🏛️',text:'你正在走向「传统坚守者」— 要不要学点AI？',color:'#FFaa44'};
+  if(s.ai>=35&&s.career>=28&&s.mood>=40) return{icon:'🤝',text:'你正在走向「人机协作者」— AI力+职场力+好心态的黄金三角！',color:'#FF8866'};
+  if(h.survival>=15) return{icon:'🔄',text:'生存韧性在积累 — 深度思考在默默发力',color:'#66BB88'};
   // 中性
   return{icon:'🌱',text:'继续探索，你的故事还在展开…',color:'#999'};
 }
@@ -265,11 +319,11 @@ var $app=document.getElementById('app');
 function render(){STATE.showTooltip=null;({start:renderStart,profile:renderProfile,intro:renderIntro,action:renderAction,event_show:renderEventShow,event_choice:renderEventChoice,major_event:renderMajorEvent,branch:renderBranch,summary:renderSummary,ending:renderEnding})[STATE.phase]();}
 function getAvatar(){return STATE.avatar||'👨';}
 function renderTooltipHTML(){if(!STATE.showTooltip)return'';var t=STATE.showTooltip;return'<div class="tooltip-overlay" onclick="G.closeTooltip()"><div class="tooltip-box" onclick="event.stopPropagation()"><div class="tip-icon">'+t.icon+'</div><div class="tip-label">'+t.label+'</div><div class="tip-text">'+t.tip+'</div><button class="close-tip" onclick="G.closeTooltip()">知道了</button></div></div>';}
-function renderStart(){$app.innerHTML='<div class="start-screen"><h1>AI大时代<br>生存模拟器</h1><p class="subtitle">2026-2027，AI大时代。<br>你是一名大厂打工人。<br>8个季度，每季度最多3次行动。<br>你的选择决定你的结局。<br><br><span style="color:#FF2442;font-weight:600">🎯 '+ENDINGS.length+'种结局等你解锁</span></p><button class="start-btn" onclick="G.startGame()">开始模拟</button><div class="ship-container"><div class="ship-flag">🚩</div><div class="ship-sail">    /|\\\n   / | \\\n  /  |  \\\n /   |   \\</div><div class="ship-body">  __|___|__\n /         \\\n/___________\\</div><div class="ship-wave">~~ ≈ ~~ ≈ ~~ ≈ ~~ ≈ ~~\n  ≈ ~~ ≈ ~~ ≈ ~~ ≈ ~~</div></div></div>';}
+function renderStart(){$app.innerHTML='<div class="start-screen"><h1>AI大时代<br>生存模拟器</h1><p class="subtitle">2026-2027，AI大时代。<br>你是一名大厂打工人。<br>8个季度，每季度2次行动。<br>你的选择决定你的结局。<br><br><span style="color:#FF2442;font-weight:600">🎯 '+ENDINGS.length+'种结局等你解锁</span></p><button class="start-btn" onclick="G.startGame()">开始模拟</button><div class="ship-container"><div class="ship-flag">🚩</div><div class="ship-sail">    /|\\\n   / | \\\n  /  |  \\\n /   |   \\</div><div class="ship-body">  __|___|__\n /         \\\n/___________\\</div><div class="ship-wave">~~ ≈ ~~ ≈ ~~ ≈ ~~ ≈ ~~\n  ≈ ~~ ≈ ~~ ≈ ~~ ≈ ~~</div></div></div>';}
 function renderProfile(){var canGo=STATE.avatar&&STATE.playerName.trim();var quickAvatars=['👨','👩'];var curIsQuick=quickAvatars.indexOf(STATE.avatar)>=0;var showCur=STATE.avatar&&!curIsQuick?STATE.avatar:'❓';var avGrid='';for(var ai=0;ai<quickAvatars.length;ai++){var av=quickAvatars[ai];var sel=STATE.avatar===av?' selected':'';avGrid+='<button class="avatar-btn'+sel+'" onclick="G.setAvatar(\''+av+'\')">'+av+'</button>';}avGrid+='<button class="avatar-btn'+(STATE.avatar&&!curIsQuick?' selected':'')+'" onclick="G.randomAvatar()">'+showCur+'</button>';var ageHtml='<div style="margin-top:12px;padding:10px;background:#F0F4FF;border-radius:12px;border:1px solid #D0DAEF"><div style="font-size:13px;color:#4A6FA5;font-weight:600;margin-bottom:4px">🎂 随机年龄</div><div style="font-size:22px;font-weight:700;color:#2B4C7E">'+STATE.playerAge+' 岁</div><div style="font-size:11px;color:#888;margin-top:2px">年龄影响初始体力和心态，年轻体力好、年长心态稳</div></div>';var tagHtml='';if(STATE._initTags.length>0){tagHtml='<div style="margin-top:12px;padding:10px;background:#FFF5F7;border-radius:12px;border:1px solid #FFE0E6"><div style="font-size:13px;color:#FF2442;font-weight:600;margin-bottom:6px">🏷️ 你的起始天赋</div>';for(var i=0;i<STATE._initTags.length;i++){var t=STATE._initTags[i];tagHtml+='<div style="margin-bottom:5px"><div><span style="font-size:14px;font-weight:600">'+t.label+'</span> <span style="font-size:12px;color:#888">'+t.desc+'</span></div><div style="font-size:11px;color:#BB6677;margin-top:1px;padding-left:2px">↳ '+t.reason+'</div></div>';}tagHtml+='</div>';}$app.innerHTML='<div class="profile-screen" style="overflow-y:auto;max-height:100vh;padding-bottom:40px"><h2>创建你的角色</h2><div class="profile-field"><label>选择头像 <span style="font-size:12px;color:#aaa">（点❓随机惊喜）</span></label><div class="avatar-grid">'+avGrid+'</div></div><div class="profile-field"><label>你的名字</label><div class="input-row"><input id="nameInput" type="text" placeholder="输入姓名" maxlength="12" value="'+esc(STATE.playerName)+'" oninput="G.updateName(this.value)"><button class="dice-btn" onclick="G.randomName()">🎲</button></div></div><div class="profile-field"><label>一句话简介（选填）</label><input id="bioInput" type="text" placeholder="例如：大厂搬砖三年的运营" maxlength="30" value="'+esc(STATE.playerBio)+'" oninput="G.updateBio(this.value)"></div>'+ageHtml+tagHtml+'<button class="btn btn-primary '+(canGo?'':'btn-disabled')+'" onclick="G.confirmProfile()" style="margin-top:16px">进入游戏 →</button></div>';}
 function renderTopBar(){var q=STATE.quarter,year=q<=4?'2026':'2027',qLabel='Q'+(((q-1)%4)+1);var rows='';for(var key in STAT_META){if(!STAT_META.hasOwnProperty(key))continue;var meta=STAT_META[key];var val=clamp(STATE.stats[key],0,100);var bc=val<=20?'#ef4444':meta.color;rows+='<div class="stat-row"><span class="stat-icon">'+meta.icon+'</span><span class="stat-label">'+meta.label+'</span><button class="stat-info-btn" onclick="event.stopPropagation();G.showTip(\''+key+'\')">i</button><div class="stat-bar-bg"><div class="stat-bar" style="width:'+val+'%;background:'+bc+'"></div></div><span class="stat-val">'+val+'</span></div>';}var tagLine='';if(STATE._initTags.length>0){tagLine='<div class="topbar-tags">';for(var ti=0;ti<STATE._initTags.length;ti++){tagLine+='<span class="topbar-tag">'+STATE._initTags[ti].label+'</span>';}tagLine+='</div>';}return'<div class="top-bar"><div class="user-info-bar"><div class="user-avatar">'+getAvatar()+'</div><div class="user-details"><div class="user-name">'+(esc(STATE.playerName)||'玩家')+' <span style="font-size:11px;color:#4A6FA5;font-weight:400">'+(STATE.playerAge||'?')+'岁</span></div><div class="user-bio">'+(esc(STATE._initBio)||esc(STATE.playerBio)||'大厂打工人')+'</div></div><span class="quarter-badge">'+year+' '+qLabel+'</span></div>'+tagLine+'<div class="stats-list">'+rows+'</div><div class="progress-bar"><div class="progress-fill" style="width:'+(q/8*100)+'%"></div></div></div>'+renderTooltipHTML();}
 function renderIntro(){var pred=predictEnding();$app.innerHTML=renderTopBar()+'<div class="main-area"><div class="card narration-card"><div class="card-title">📅 第'+STATE.quarter+'季度</div><div class="card-body"><p>'+QUARTER_NARRATIONS[STATE.quarter].replace(/\n/g,'<br>')+'</p></div></div>'+(STATE.quarter>1?'<div style="background:linear-gradient(135deg,#FFF5F7,#FFE8EC);border-radius:10px;padding:10px 12px;margin-bottom:10px;border-left:3px solid '+pred.color+'"><span style="font-size:16px">'+pred.icon+'</span> <span style="font-size:13px;color:#333">'+pred.text+'</span></div>':'')+'<button class="btn btn-primary" onclick="G.toAction()">选择行动 →</button></div>';}
-function renderAction(){var sel=STATE.selectedActions;var btns='';for(var i=0;i<ACTIONS.length;i++){var a=ACTIONS[i];var isSel=sel.indexOf(a.id)>=0;var combined={};for(var k in a.effects){if(a.effects.hasOwnProperty(k))combined[k]=a.effects[k];}if(a.bonus){var bn=a.bonus(STATE.stats);for(var bk in bn){if(bn.hasOwnProperty(bk))combined[bk]=(combined[bk]||0)+bn[bk];}}var pv='';for(var ck in combined){if(!combined.hasOwnProperty(ck))continue;var m=STAT_META[ck];if(m)pv+=m.icon+(combined[ck]>0?'+':'')+combined[ck]+' ';}if(STATE.flags.ai_skill_nerf&&a.id==='ai')pv+=' ⚠️';if(STATE.flags.work_nerf&&a.id==='work')pv+=' ⚠️';btns+='<button class="'+(isSel?'btn btn-selected':'btn')+'" onclick="G.toggleAction(\''+a.id+'\')"><div class="btn-label">'+a.label+(isSel?' ✓':'')+'</div><div class="btn-desc">'+a.desc+'</div><div class="btn-fx">'+pv+'</div></button>';}var qNar=QUARTER_NARRATIONS[STATE.quarter]||'';var shortNar=qNar.split('\n')[0];var narCard=shortNar?'<div style="background:#FFF5F7;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:13px;color:#666;border-left:3px solid #FF2442"><span style="color:#FF2442;font-weight:600">📅 本季度：</span>'+shortNar+'</div>':'';$app.innerHTML=renderTopBar()+'<div class="main-area" id="actionArea">'+narCard+'<div class="action-header"><div class="action-counter">已选 <span>'+sel.length+'</span> / 3 个行动</div><button class="btn-secondary" onclick="G.backToIntro()">← 返回</button></div><div class="btn-grid">'+btns+'</div><button class="btn btn-primary '+(sel.length>=1?'':'btn-disabled')+'" onclick="G.confirmActions()" style="margin-top:8px">确认行动 →</button></div>';}
+function renderAction(){var sel=STATE.selectedActions;var btns='';for(var i=0;i<ACTIONS.length;i++){var a=ACTIONS[i];var isSel=sel.indexOf(a.id)>=0;var combined={};for(var k in a.effects){if(a.effects.hasOwnProperty(k))combined[k]=a.effects[k];}if(a.bonus){var bn=a.bonus(STATE.stats);for(var bk in bn){if(bn.hasOwnProperty(bk))combined[bk]=(combined[bk]||0)+bn[bk];}}var pv='';for(var ck in combined){if(!combined.hasOwnProperty(ck))continue;var m=STAT_META[ck];if(m)pv+=m.icon+(combined[ck]>0?'+':'')+combined[ck]+' ';}if(STATE.flags.ai_skill_nerf&&a.id==='ai')pv+=' ⚠️';if(STATE.flags.work_nerf&&a.id==='work')pv+=' ⚠️';btns+='<button class="'+(isSel?'btn btn-selected':'btn')+'" onclick="G.toggleAction(\''+a.id+'\')"><div class="btn-label">'+a.label+(isSel?' ✓':'')+'</div><div class="btn-desc">'+a.desc+'</div><div class="btn-fx">'+pv+'</div></button>';}var qNar=QUARTER_NARRATIONS[STATE.quarter]||'';var shortNar=qNar.split('\n')[0];var narCard=shortNar?'<div style="background:#FFF5F7;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:13px;color:#666;border-left:3px solid #FF2442"><span style="color:#FF2442;font-weight:600">📅 本季度：</span>'+shortNar+'</div>':'';$app.innerHTML=renderTopBar()+'<div class="main-area" id="actionArea">'+narCard+'<div class="action-header"><div class="action-counter">已选 <span>'+sel.length+'</span> / 2 个行动</div><button class="btn-secondary" onclick="G.backToIntro()">← 返回</button></div><div class="btn-grid">'+btns+'</div><button class="btn btn-primary '+(sel.length>=1?'':'btn-disabled')+'" onclick="G.confirmActions()" style="margin-top:8px">确认行动 →</button></div>';}
 function renderEventShow(){var ev=STATE._eventQueue[STATE._eventIndex];if(!ev){processPostEvents();return;}var fxText='';if(ev.effects){for(var k in ev.effects){if(!ev.effects.hasOwnProperty(k))continue;var m=STAT_META[k];if(m)fxText+='<span style="color:'+(ev.effects[k]>0?'#16a34a':'#dc2626')+';font-weight:600">'+m.icon+(ev.effects[k]>0?'+':'')+ev.effects[k]+'</span> ';}}var dtag=ev.dilemma?'<span style="background:#FFE4D6;color:#B85C38;padding:2px 8px;border-radius:10px;font-size:11px">🎭 两难</span> ':'';$app.innerHTML=renderTopBar()+'<div class="main-area"><div class="card event-card"><div class="card-title">'+(ev.tone==='positive'?'📈 好消息':'📉 坏消息')+'</div><div class="card-body"><p style="font-weight:600;font-size:16px;color:#1a1a2e;margin-bottom:8px">'+dtag+ev.title+'</p><p>'+ev.text.replace(/\n/g,'<br>')+'</p>'+(fxText?'<p style="margin-top:8px">'+fxText+'</p>':'')+'</div></div><div style="text-align:center;font-size:12px;color:#999;margin-top:4px">'+(STATE._eventIndex+1)+' / '+STATE._eventQueue.length+' 个事件</div><button class="btn btn-primary" onclick="G.nextEvent()">继续 →</button></div>';}
 function renderEventChoice(){var ev=STATE._eventQueue[STATE._eventIndex];var dtag=ev.dilemma?'<span style="background:#FFF0F0;color:#FF2442;padding:3px 10px;border-radius:12px;font-size:12px;margin-bottom:12px;display:inline-block">⚡ 两难抉择</span>':'';var btns='';for(var i=0;i<ev.choices.length;i++){btns+='<button class="btn" onclick="G.chooseEvent('+i+')"><div class="btn-label">'+ev.choices[i].label+'</div><div class="btn-desc">'+ev.choices[i].desc+'</div></button>';}$app.innerHTML=renderTopBar()+'<div class="main-area"><div class="card event-card" style="border-color:#FFB080;background:linear-gradient(135deg,#FFF8F0,#FFEED8)"><div class="card-title">🤔 你需要做个决定</div><div class="card-body">'+dtag+'<p style="font-weight:600;font-size:16px;color:#1a1a2e;margin-bottom:8px">'+ev.title+'</p><p>'+ev.text.replace(/\n/g,'<br>')+'</p></div></div><div class="btn-group">'+btns+'</div></div>';}
 function renderMajorEvent(){var ev=STATE._currentMajor;$app.innerHTML=renderTopBar()+'<div class="main-area"><div class="card event-card major"><div class="card-title">⚡ 重大事件</div><div class="card-body"><p style="font-weight:600;font-size:16px;color:#1a1a2e;margin-bottom:8px">'+ev.title+'</p><p>'+ev.text.replace(/\n/g,'<br>')+'</p></div></div><button class="btn btn-primary" onclick="G.toBranch()">面对抉择 →</button></div>';}
@@ -286,7 +340,7 @@ function randomName(){STATE.playerName=RANDOM_NAMES[trueRand(RANDOM_NAMES.length
 function confirmProfile(){if(!STATE.avatar||!STATE.playerName.trim())return;STATE._initBio=STATE.playerBio||'大厂打工人';STATE.quarter=1;STATE.phase='intro';render();}
 function toAction(){STATE.selectedActions=[];STATE.phase='action';render();}
 function backToIntro(){STATE.phase='intro';render();}
-function toggleAction(id){var idx=STATE.selectedActions.indexOf(id);if(idx>=0)STATE.selectedActions.splice(idx,1);else if(STATE.selectedActions.length<3)STATE.selectedActions.push(id);var area=document.getElementById('actionArea');var st=area?area.scrollTop:0;renderAction();var a2=document.getElementById('actionArea');if(a2)a2.scrollTop=st;}
+function toggleAction(id){var idx=STATE.selectedActions.indexOf(id);if(idx>=0)STATE.selectedActions.splice(idx,1);else if(STATE.selectedActions.length<2)STATE.selectedActions.push(id);var area=document.getElementById('actionArea');var st=area?area.scrollTop:0;renderAction();var a2=document.getElementById('actionArea');if(a2)a2.scrollTop=st;}
 function confirmActions(){
   if(STATE.selectedActions.length<1)return;
   STATE._thisQuarterActions=STATE.selectedActions.slice();
@@ -302,15 +356,21 @@ function confirmActions(){
     if(STATE.flags.build_changed&&aid==='ai'){if(fx.career)fx.career=Math.round(fx.career*0.7);}
     applyEffects(fx);if(action.hiddenFx)applyHidden(action.hiddenFx);STATE.actionHistory.push(aid);
   }
-  STATE.stats.energy=clamp(STATE.stats.energy+5,0,100);
+  STATE.stats.energy=clamp(STATE.stats.energy+3,0,100);
   // 职场力自然衰减(不做work/social时)
   var didCareer=STATE.selectedActions.indexOf('work')>=0||STATE.selectedActions.indexOf('social')>=0;
   if(!didCareer)STATE.stats.career=Math.max(5,STATE.stats.career-(STATE.stats.career>=50?3:2));
   // AI力自然衰减(不做learn_ai/build时)
   var didAI=STATE.selectedActions.indexOf('ai')>=0;
   if(!didAI)STATE.stats.ai=Math.max(3,STATE.stats.ai-(STATE.stats.ai>=50?4:STATE.stats.ai>=30?3:1));
+  // survival衰减机制：不思考则韧性流失，身心透支侵蚀韧性
+  var didThink=STATE.selectedActions.indexOf('think')>=0;
+  if(!didThink){STATE.flags._noThinkStreak=(STATE.flags._noThinkStreak||0)+1;}else{STATE.flags._noThinkStreak=0;}
+  if(STATE.flags._noThinkStreak>=2)STATE.hidden.survival=Math.max(0,STATE.hidden.survival-2);
+  if(STATE.stats.energy<20)STATE.hidden.survival=Math.max(0,STATE.hidden.survival-2);
+  if(STATE.stats.mood<20)STATE.hidden.survival=Math.max(0,STATE.hidden.survival-3);
   if(checkCriticalEnding()){STATE.phase='ending';render();return;}
-  var numEv=1+trueRand(3);
+  var numEv=2+trueRand(3);
   var queue=[],usedThisQ={};for(var ei=0;ei<numEv;ei++){var ev=pickNormalEvent(usedThisQ);if(ev){queue.push(ev);usedThisQ[ev.id]=true;if(ev.once)STATE._usedOnceEvents[ev.id]=true;}}
   STATE._eventQueue=queue;STATE._eventIndex=0;
   STATE._currentMajor=pickMajorEvent();
